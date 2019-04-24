@@ -577,7 +577,7 @@ Seguiremos el mismo procedimiento anterior, creando primero la función que resu
 
 Los documentos se crean en Mongoose con el método `create`. Los parámetros se recogen en `req.body.nombre-parametro`.
 
-Para el envío de parámetros del POST desde Postman, los haremos añadiendo parejas clave-valor en x-www-form-urlencoded.
+Para el envío de parámetros del POST desde Postman añadiremos parejas clave-valor en x-www-form-urlencoded tal y como se ilustra a continuación.
 
 image::post-book.png[]
 
@@ -607,6 +607,7 @@ module.exports.bookCreate = function(req, res) {
         .send(book);
     });
 };
+...
 ----
 <1> Llamada a la función `create` de Mongoose, que creará un documento en MongoDB de acuerdo al esquema definido para la colección
 <2> Los valores a insertar son recogidos en `req.body.nombreDelParametro` (p.e. `req.body.title`, `req.body.genre`, ...)
@@ -615,7 +616,7 @@ module.exports.bookCreate = function(req, res) {
 
 #### Creación de la ruta
 
-Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método HTTP a la función definida en el archivos del controlador.
+Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método POST a la función definida en el archivos del controlador.
 
 .Fragmento del archivo `api_server/routes/index.js`
 
@@ -648,7 +649,7 @@ module.exports.bookDelete = function(req, res) {
                     .status(400)
                     .send(err);
                 }
-                return res
+                return res <4>
                 .status(204)
                 .send(null);
             }
@@ -659,15 +660,16 @@ module.exports.bookDelete = function(req, res) {
         .send({"message": "No id in the request"});
     }
 };
+...
 ----
 <1> Accederemos a `req.params` para saber si se han pasado parámetros y a `req.params.id` para acceder al parámetro `id`
-<2> Llamada a la función `findByIdAndDelete` de Mongoose, inspirada en la función `findOneAndDelete` de Mongo, y se le pasará como parámetro el `id` del libro a borrar
+<2> Llamada a la función `findByIdAndDelete` de Mongoose, inspirada en la función `findOneAndDelete` de MongoDB, y se le pasará como parámetro el `id` del libro a borrar
 <3> Comprobamos en la función de callback si se ha producido un error
 <4> Se devuelve el código de estado 204 y `null` que es el convenio para eliminaciones satisfactorias
 
 #### Creación de la ruta
 
-Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método HTTP a la función definida en el archivos del controlador.
+Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método DELETE a la función definida en el archivos del controlador.
 
 .Fragmento del archivo `api_server/routes/index.js`
 
@@ -680,57 +682,59 @@ router.delete('/book/:id', ctrlBook.bookDelete);
 
 ### Actualización de documentos (PUT)
 
-La actualización se realizará pasando el id del documento a modificar y los campos a actualizar. Se actualizarán sólo los campos pasados en el PUT.
+La actualización se realizará pasando el id del documento a modificar y los campos a actualizar. Se actualizarán sólo los campos pasados en la petición dejando el resto intactos.
 
 #### Creación del controlador
 
 .Fragmento del archivo `api_server/controllers/book.js`
 [source, js]
 ----
+...
 module.exports.bookUpdate = function(req, res) {
     if (req.params && req.params.id) { <1>
         Book
         .findById(req.params.id) <2>
         .exec(
             function(err, book) {
-                if (err) { <3>
+                if (!book) { <3>
                     return res
-                    .status(400)
-                    .send(err);
-                }
-                if (req.body.title) { <4>
-                    book.title = req.body.title;
-                }
-                if (req.body.genre) {
-                    book.genre = req.body.genre;
-                }
-                if (req.body.description) {
-                    book.description = req.body.description;
-                }
-                if (req.body.author) {
-                    book.author = req.body.author;
-                }
-                if (req.body.publisher) {
-                    book.publisher = req.body.publisher;
-                }
-                if (req.body.pages) {
-                    book.pages = req.body.pages;
-                }
-                if (req.body.image_url) {
-                    book.image_url = req.body.image_url;
-                }
-                book.save(function (err, book) { <5>
-                    if (err) { <6>
-                        return res
-                        .status(404)
-                        .send(err);
+                    .status(404)
+                    .send({"message": "no book found"});
+                } else {
+                    if (req.body.title) { <4>
+                        book.title = req.body.title;
                     }
-                    else {
-                        return res <7>
-                        .status(200)
-                        .send(book);
+                    if (req.body.genre) {
+                        book.genre = req.body.genre;
                     }
-                });
+                    if (req.body.description) {
+                        book.description = req.body.description;
+                    }
+                    if (req.body.author) {
+                        book.author = req.body.author;
+                    }
+                    if (req.body.publisher) {
+                        book.publisher = req.body.publisher;
+                    }
+                    if (req.body.pages) {
+                        book.pages = req.body.pages;
+                    }
+                    if (req.body.image_url) {
+                        book.image_url = req.body.image_url;
+                    }
+                    book.save(function (err, book) { <5>
+                        if (err) { <6>
+                            return res
+                            .status(404)
+                            .send(err);
+                        }
+                        else {
+                            return res <7>
+                            .status(200)
+                            .send(book);
+                        }
+                    });
+                }
             }
         );
     } else {
@@ -739,18 +743,19 @@ module.exports.bookUpdate = function(req, res) {
         .send({"message": "No id in the request"});
     }
 };
+...
 ----
 <1> Accederemos a `req.params` para saber si se han pasado parámetros y a `req.params.id` para acceder al parámetro `id`
 <2> Llamada a la función `findById` de Mongoose pasándole el `id` como argumento
-<3> Comprobamos en la función de callback si no se han producido errores
-<4> Se comprueba si se han pasado valores para cada campo del documento comporbando los parámetros pasados
+<3> Comprobamos en la función de callback si se ha encontrado en libro
+<4> Se comprueba si se han pasado valores para cada campo del documento comprobando los parámetros pasados
 <5> Llamada a la función `save` de Mongoose para almacenar las modificaciones 
 <6> Se comprueba si se ha producido algún error
-<7> Se devuelve el estado (200) y el libro modificado, que es el convenio en operaciones de modificación
+<7> Se devuelve el estado 200 y el libro modificado, que es el convenio en operaciones de modificación
 
 #### Creación de la ruta
 
-Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método HTTP a la función definida en el archivos del controlador.
+Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método PUT a la función definida en el archivos del controlador.
 
 .Fragmento del archivo `api_server/routes/index.js`
 
@@ -922,7 +927,7 @@ mongo> use bookstore;
 mongo> db.books.insertMany(
 [
     {
-        "_id": "5cac6351f4c126f6d91c6450",
+        "_id": ObjectId("5cac6351f4c126f6d91c6450"),
         "title": "Una historia de España",
         "genre": "Historia",
         "description": "Un relato ameno, personal, a ratos irónico, pero siempre único, de nuestra accidentada historia a través de los siglos. Una obra concebida por el autor para, en palabras suyas, «divertirme, releer y disfrutar; un pretexto para mirar atrás desde los tiempos remotos hasta el presente, reflexionar un poco sobre ello y contarlo por escrito de una manera poco ortodoxa.",
@@ -932,7 +937,7 @@ mongo> db.books.insertMany(
         "image_url": "https://images-na.ssl-images-amazon.com/images/I/41%2B-e981m1L._SX311_BO1,204,203,200_.jpg"
     },
     {
-        "_id": "5cacf56222ee3f230a725895",
+        "_id": ObjectId("5cacf56222ee3f230a725895"),
         "title": "Historia de España contada para escépticos",
         "genre": "Historia",
         "description": "Como escribe el autor, no pretende ser veraz, justa y desapasionada, porque ninguna historia lo es. No está hecha para halagar a reyes y gobernantes, ni pretende halagar a los banqueros, ni a la Conferencia Episcopal, ni al colectivo gay.",
