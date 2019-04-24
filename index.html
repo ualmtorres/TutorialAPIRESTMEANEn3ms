@@ -476,7 +476,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#truegeneraci-n-de-un-jwt-desde-express">7.1. Generación de un JWT desde Express</a></li>
 </ul>
 </li>
-<li><a href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes">Apéndice A. Códigos de estado HTTP frecuentes</a></li>
+<li><a href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes">Apéndice A. Códigos de estado HTTP frecuentes</a>
+<ul class="sectlevel2">
+<li><a href="#trueap-ndice-b-base-de-datos-de-ejemplo">Apéndice B. Base de datos de ejemplo</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -1279,24 +1283,25 @@ router.get('/genre/:genre', ctrlBook.bookFindByGenre);
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">....
 module.exports.bookCreate = function(req, res) {
-  console.log('Finding book details', req.params);
-  Book
-  .create({
-    title: req.body.title,
-    genre: req.body.genre,
-    description: req.body.description,
-    author: req.body.author,
-    publisher: req.body.publisher,
-    pages: req.body.pages,
-    image_url: req.body.image_url
-  },function(err, book) {
-    if (err) {
-      console.log(err);
-      sendJSONresponse(res, 400, err);
-    }
-    console.log(book);
-    sendJSONresponse(res, 201, book);
-  });
+    Book
+    .create({
+        title: req.body.title,
+        genre: req.body.genre,
+        description: req.body.description,
+        author: req.body.author,
+        publisher: req.body.publisher,
+        pages: req.body.pages,
+        image_url: req.body.image_url
+    },function(err, book) {
+        if (err) {
+            return res
+            .status(400)
+            .send(err);
+        }
+        return res
+        .status(201)
+        .send(book);
+    });
 };</code></pre>
 </div>
 </div>
@@ -1322,26 +1327,27 @@ router.post('/book', ctrlBook.bookCreate);
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">...
 module.exports.bookDelete = function(req, res) {
-  console.log('Finding book details', req.params);
-  if (req.params &amp;&amp; req.params.id) {
-    Book
-    .findByIdAndDelete(req.params.id)
-    .exec(
-      function(err, book) {
-        if (err) {
-          console.log(err);
-          sendJSONresponse(res, 400, err);
-          return;
-        }
-        console.log(book);
-        sendJSONresponse(res, 204, null);
-      });
+    if (req.params &amp;&amp; req.params.id) {
+        Book
+        .findByIdAndDelete(req.params.id)
+        .exec(
+            function(err, book) {
+                if (err) {
+                    return res
+                    .status(400)
+                    .send(err);
+                }
+                return res
+                .status(204)
+                .send(null);
+            }
+        );
     } else {
-      sendJsonResponse(res, 404, {
-        "message": "No id in the request"
-      });
+        return res
+        .status(404)
+        .send({"message": "No id in the request"});
     }
-  };</code></pre>
+};</code></pre>
 </div>
 </div>
 </div>
@@ -1367,54 +1373,58 @@ router.delete('/book/:id', ctrlBook.bookDelete);
 <div class="listingblock">
 <div class="title">Fragmento del archivo <code>api_server/controllers/book.js</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-js" data-lang="js">  module.exports.bookUpdate = function(req, res) {
-    console.log('Finding book details', req.params);
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">module.exports.bookUpdate = function(req, res) {
     if (req.params &amp;&amp; req.params.id) {
-      Book
-      .findById(req.params.id)
-      .exec(
-        function(err, book) {
-          if (err) {
-            console.log(err);
-            sendJSONresponse(res, 400, err);
-            return;
-          }
-          if (req.body.title) {
-            book.title = req.body.title;
-          }
-          if (req.body.genre) {
-            book.genre = req.body.genre;
-          }
-          if (req.body.description) {
-            book.description = req.body.description;
-          }
-          if (req.body.author) {
-            book.author = req.body.author;
-          }
-          if (req.body.publisher) {
-            book.publisher = req.body.publisher;
-          }
-          if (req.body.pages) {
-            book.pages = req.body.pages;
-          }
-          if (req.body.image_url) {
-            book.image_url = req.body.image_url;
-          }
-          book.save(function (err, book) {
-            if (err) {
-              sendJSONresponse(res, 404, err);
+        Book
+        .findById(req.params.id)
+        .exec(
+            function(err, book) {
+                if (err) {
+                    return res
+                    .status(400)
+                    .send(err);
+                }
+                if (req.body.title) {
+                    book.title = req.body.title;
+                }
+                if (req.body.genre) {
+                    book.genre = req.body.genre;
+                }
+                if (req.body.description) {
+                    book.description = req.body.description;
+                }
+                if (req.body.author) {
+                    book.author = req.body.author;
+                }
+                if (req.body.publisher) {
+                    book.publisher = req.body.publisher;
+                }
+                if (req.body.pages) {
+                    book.pages = req.body.pages;
+                }
+                if (req.body.image_url) {
+                    book.image_url = req.body.image_url;
+                }
+                book.save(function (err, book) {
+                    if (err) {
+                        return res
+                        .status(404)
+                        .send(err);
+                    }
+                    else {
+                        return res
+                        .status(200)
+                        .send(book);
+                    }
+                });
             }
-            else {
-              sendJSONresponse(res, 200, book);
-            }
-          });
-        });
-      } else {
-        sendJsonResponse(res, 404, {
-          "message": "No id in the request"
-        });
-      }
-    };</code></pre>
+        );
+    } else {
+        return res
+        .status(404)
+        .send({"message": "No id in the request"});
+    }
+};</code></pre>
 </div>
 </div>
 </div>
@@ -1598,6 +1608,9 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 <pre class="highlightjs highlight"><code class="language-bash" data-lang="bash">$ npm install jsonwebtoken --save</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>TODO &#8230;&#8203;&#8230;&#8203;</p>
+</div>
 </div>
 </div>
 </div>
@@ -1661,12 +1674,45 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 </tr>
 </tbody>
 </table>
+<div class="sect2">
+<h3 id="trueap-ndice-b-base-de-datos-de-ejemplo"><a class="anchor" href="#trueap-ndice-b-base-de-datos-de-ejemplo"></a>Apéndice B. Base de datos de ejemplo</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">mongo&gt; use bookstore;
+mongo&gt; db.books.insertMany(
+[
+    {
+        "_id": "5cac6351f4c126f6d91c6450",
+        "title": "Una historia de España",
+        "genre": "Historia",
+        "description": "Un relato ameno, personal, a ratos irónico, pero siempre único, de nuestra accidentada historia a través de los siglos. Una obra concebida por el autor para, en palabras suyas, «divertirme, releer y disfrutar; un pretexto para mirar atrás desde los tiempos remotos hasta el presente, reflexionar un poco sobre ello y contarlo por escrito de una manera poco ortodoxa.",
+        "author": "Arturo Pérez-Reverte",
+        "publisher": "Alfaguara",
+        "pages": 256,
+        "image_url": "https://images-na.ssl-images-amazon.com/images/I/41%2B-e981m1L._SX311_BO1,204,203,200_.jpg"
+    },
+    {
+        "_id": "5cacf56222ee3f230a725895",
+        "title": "Historia de España contada para escépticos",
+        "genre": "Historia",
+        "description": "Como escribe el autor, no pretende ser veraz, justa y desapasionada, porque ninguna historia lo es. No está hecha para halagar a reyes y gobernantes, ni pretende halagar a los banqueros, ni a la Conferencia Episcopal, ni al colectivo gay.",
+        "author": "Juan Eslava Galán",
+        "publisher": "Booket",
+        "pages": 592,
+        "image_url": "https://images-na.ssl-images-amazon.com/images/I/51IyZ5Mq8YL._SX326_BO1,204,203,200_.jpg",
+        "__v": 0
+    }
+]
+);</code></pre>
+</div>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-04-24 13:50:07 CEST
+Last updated 2019-04-24 14:28:31 CEST
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/github.min.css">

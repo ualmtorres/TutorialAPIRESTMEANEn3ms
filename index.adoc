@@ -585,24 +585,25 @@ image::post-book.png[]
 ----
 ....
 module.exports.bookCreate = function(req, res) {
-  console.log('Finding book details', req.params);
-  Book
-  .create({
-    title: req.body.title,
-    genre: req.body.genre,
-    description: req.body.description,
-    author: req.body.author,
-    publisher: req.body.publisher,
-    pages: req.body.pages,
-    image_url: req.body.image_url
-  },function(err, book) {
-    if (err) {
-      console.log(err);
-      sendJSONresponse(res, 400, err);
-    }
-    console.log(book);
-    sendJSONresponse(res, 201, book);
-  });
+    Book
+    .create({
+        title: req.body.title,
+        genre: req.body.genre,
+        description: req.body.description,
+        author: req.body.author,
+        publisher: req.body.publisher,
+        pages: req.body.pages,
+        image_url: req.body.image_url
+    },function(err, book) {
+        if (err) {
+            return res
+            .status(400)
+            .send(err);
+        }
+        return res
+        .status(201)
+        .send(book);
+    });
 };
 ----
 
@@ -628,26 +629,27 @@ router.post('/book', ctrlBook.bookCreate);
 ----
 ...
 module.exports.bookDelete = function(req, res) {
-  console.log('Finding book details', req.params);
-  if (req.params && req.params.id) {
-    Book
-    .findByIdAndDelete(req.params.id)
-    .exec(
-      function(err, book) {
-        if (err) {
-          console.log(err);
-          sendJSONresponse(res, 400, err);
-          return;
-        }
-        console.log(book);
-        sendJSONresponse(res, 204, null);
-      });
+    if (req.params && req.params.id) {
+        Book
+        .findByIdAndDelete(req.params.id)
+        .exec(
+            function(err, book) {
+                if (err) {
+                    return res
+                    .status(400)
+                    .send(err);
+                }
+                return res
+                .status(204)
+                .send(null);
+            }
+        );
     } else {
-      sendJsonResponse(res, 404, {
-        "message": "No id in the request"
-      });
+        return res
+        .status(404)
+        .send({"message": "No id in the request"});
     }
-  };
+};
 ----
 
 #### Creación de la ruta
@@ -670,54 +672,58 @@ La actualización se realizará pasando el id del documento a modificar y los ca
 .Fragmento del archivo `api_server/controllers/book.js`
 [source, js]
 ----
-  module.exports.bookUpdate = function(req, res) {
-    console.log('Finding book details', req.params);
+module.exports.bookUpdate = function(req, res) {
     if (req.params && req.params.id) {
-      Book
-      .findById(req.params.id)
-      .exec(
-        function(err, book) {
-          if (err) {
-            console.log(err);
-            sendJSONresponse(res, 400, err);
-            return;
-          }
-          if (req.body.title) {
-            book.title = req.body.title;
-          }
-          if (req.body.genre) {
-            book.genre = req.body.genre;
-          }
-          if (req.body.description) {
-            book.description = req.body.description;
-          }
-          if (req.body.author) {
-            book.author = req.body.author;
-          }
-          if (req.body.publisher) {
-            book.publisher = req.body.publisher;
-          }
-          if (req.body.pages) {
-            book.pages = req.body.pages;
-          }
-          if (req.body.image_url) {
-            book.image_url = req.body.image_url;
-          }
-          book.save(function (err, book) {
-            if (err) {
-              sendJSONresponse(res, 404, err);
+        Book
+        .findById(req.params.id)
+        .exec(
+            function(err, book) {
+                if (err) {
+                    return res
+                    .status(400)
+                    .send(err);
+                }
+                if (req.body.title) {
+                    book.title = req.body.title;
+                }
+                if (req.body.genre) {
+                    book.genre = req.body.genre;
+                }
+                if (req.body.description) {
+                    book.description = req.body.description;
+                }
+                if (req.body.author) {
+                    book.author = req.body.author;
+                }
+                if (req.body.publisher) {
+                    book.publisher = req.body.publisher;
+                }
+                if (req.body.pages) {
+                    book.pages = req.body.pages;
+                }
+                if (req.body.image_url) {
+                    book.image_url = req.body.image_url;
+                }
+                book.save(function (err, book) {
+                    if (err) {
+                        return res
+                        .status(404)
+                        .send(err);
+                    }
+                    else {
+                        return res
+                        .status(200)
+                        .send(book);
+                    }
+                });
             }
-            else {
-              sendJSONresponse(res, 200, book);
-            }
-          });
-        });
-      } else {
-        sendJsonResponse(res, 404, {
-          "message": "No id in the request"
-        });
-      }
-    };
+        );
+    } else {
+        return res
+        .status(404)
+        .send({"message": "No id in the request"});
+    }
+};
 ----
 
 #### Creación de la ruta
@@ -864,6 +870,8 @@ Existen librerías para generar JWT, como es `jsonwebtoken`. La instalaremos en 
 $ npm install jsonwebtoken --save
 ----
 
+TODO ......
+
 :numbered!: 
 
 ## Apéndice A. Códigos de estado HTTP frecuentes
@@ -882,3 +890,33 @@ $ npm install jsonwebtoken --save
 | 500 | Internal server error | Problem with your server or the database server 
 |====================
 
+### Apéndice B. Base de datos de ejemplo
+
+[source, js]
+----
+mongo> use bookstore;
+mongo> db.books.insertMany(
+[
+    {
+        "_id": "5cac6351f4c126f6d91c6450",
+        "title": "Una historia de España",
+        "genre": "Historia",
+        "description": "Un relato ameno, personal, a ratos irónico, pero siempre único, de nuestra accidentada historia a través de los siglos. Una obra concebida por el autor para, en palabras suyas, «divertirme, releer y disfrutar; un pretexto para mirar atrás desde los tiempos remotos hasta el presente, reflexionar un poco sobre ello y contarlo por escrito de una manera poco ortodoxa.",
+        "author": "Arturo Pérez-Reverte",
+        "publisher": "Alfaguara",
+        "pages": 256,
+        "image_url": "https://images-na.ssl-images-amazon.com/images/I/41%2B-e981m1L._SX311_BO1,204,203,200_.jpg"
+    },
+    {
+        "_id": "5cacf56222ee3f230a725895",
+        "title": "Historia de España contada para escépticos",
+        "genre": "Historia",
+        "description": "Como escribe el autor, no pretende ser veraz, justa y desapasionada, porque ninguna historia lo es. No está hecha para halagar a reyes y gobernantes, ni pretende halagar a los banqueros, ni a la Conferencia Episcopal, ni al colectivo gay.",
+        "author": "Juan Eslava Galán",
+        "publisher": "Booket",
+        "pages": 592,
+        "image_url": "https://images-na.ssl-images-amazon.com/images/I/51IyZ5Mq8YL._SX326_BO1,204,203,200_.jpg",
+        "__v": 0
+    }
+]
+);
