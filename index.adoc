@@ -1,0 +1,884 @@
+////
+NO CAMBIAR!!
+Codificación, idioma, tabla de contenidos, tipo de documento
+////
+:encoding: utf-8
+:lang: es
+:toc: right
+:toc-title: Tabla de contenidos
+:doctype: book
+:imagesdir: ./images
+
+
+
+
+////
+Nombre y título del trabajo
+////
+# Creación de una API REST para la pila MEAN en 3 ms
+Desarrollo de Aplicaciones Híbridas
+UAL
+
+Manuel Torres - Departamento de Informática. UAL
+
+image::di.png[]
+
+// NO CAMBIAR!! (Entrar en modo no numerado de apartados)
+:numbered!: 
+
+
+[abstract]
+## Resumen
+
+Veremos los pasos básicos para el desarrollo de una API REST para la pila MEAN.
+
+.Objetivos
+
+* Configurar el entorno 
+* Crear la estructura organizada de carpetas y archivos de un proyecto MEAN
+* Conocer el funcionamiento básico de rutas, controladores y modelos
+* Realizar las operaciones CRUD básicas
+* Aprender a consumir de una API REST MEAN
+
+// Entrar en modo numerado de apartados
+:numbered:
+
+## Configuración del entorno para Ubuntu Linux
+
+Para el desarrollo de este tutorial necesitaremos configurar un entorno con https://www.mongodb.com/what-is-mongodb[MongoDB] (un gestor de bases de datos de documentos), https://nodejs.org/es/[Node.js] (un entorno de ejecución JavaScript) y https://expressjs.com/es/[Express] (un framework de Node.js para desarrollo web muy útil en la creación de APIs REST).
+
+También usaremos https://nodemon.io/[nodemon], una utilidad que recarga el servidor Node.js ante cualquier cambio en el código del proyecto.
+
+[source, bash]
+----
+# Installing MongoDB
+$ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4
+$ sudo echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/4.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.0.list
+$ sudo apt-get update
+$ sudo apt-get install -y mongodb-org
+$ sudo service mongod start
+
+# Installing Node
+$ sudo curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+$ apt-get install -y nodejs
+
+# Installing Express
+$ npm install -g express-generator
+
+# Installing nodemon
+$ npm install -g nodemon
+----
+
+Comprobaremos el funcionamiento correcto desde una terminal:
+
+[source, bash]
+----
+$ node --version
+v10.15.3
+$ npm --version
+6.4.1
+$ express --version
+4.16.0
+----
+
+## Preparación del proyecto
+
+Nuestro proyecto tratará sobre la creación de una API REST sencilla para la gestión de libros. Implementaremos los métodos CRUD básicos. Cada libro tendrá un título, género, descripción, autor, editorial, número de páginas, y URL de la imagen del libro.
+
+### Creación del proyecto
+
+Para el desarrollo del proyecto usaremos https://mongoosejs.com/[Mongoose], un ODM que facilita el desarrollo de aplicaciones Node.js para MongoDB. Entre otras características, Mongoose introduce esquemas para las colecciones MongoDB permitiendo el modelado de datos de la aplicación, así como la validación de tipos.
+
+Comenzaremos creando un directorio para nuestro proyecto, inicializando un proyecto Express, instalando todas las dependencias del proyecto e instalando Mongoose en nuestro proyecto para la interacción con MongoDB.
+
+[source, bash]
+----
+$ mkdir bookstore
+$ cd bookstore
+$ express
+$ npm install
+$ npm install mongoose --save
+----
+
+### Estructura predeterminada del proyecto
+
+Tras inicializar el proyecto con Express, la estructura del proyecto es similar a la que se describe a continuación. 
+
+[source, bash]
+----
+├── app.js <1>
+├── bin
+│   └── www
+├── node_modules <2>
+│   ├── ...
+├── package.json <3>
+├── public <4>
+│   ├── images
+│   ├── javascripts
+│   └── stylesheets
+├── routes <5>
+│   ├── index.js
+│   └── users.js
+└── views <6>
+    ├── error.jade
+    ├── index.jade
+    └── layout.jade
+----
+
+Destacamos lo siguiente:
+
+<1> En el archivo `app.js` se definen, entre otros, los archivos de rutas (p.e. archivos de rutas de la aplicación y de la API), el motor de plantilla usado (p.e. http://jade-lang.com/[Jade]) y la ubicación de la carpeta de vistas.
+
+<2> El directorio `node_modules` contiene los módulos instalados de la aplicación.
+<3> El archivo `package.json` contiene información descriptiva de la aplicación, punto de inicio (p.e. `bin/www`) y dependencias (p.e. Express, Jade, Mongoose, ...)
+<4> En el directorio `public` colocaremos las imágenes, hojas de estilo y scripts que no queremos que bloqueen al servidor mientras son servidos a los clientes.
+<5> El directorio `routes` contiene archivos de rutas que indican los controladores que dan respuesta a cada petición
+<6> El directorio `views` contiene cada una de las vistas de presentación de datos de la aplicación.
+
+### Configuración de carpetas
+
+Express crea de forma predeterminada la estructura anterior. Sin embargo, de cara a desarollar la API es conveniente crear una carpeta aparte que incluya los modelos, rutas y controladores asociados. Esta es la organzación propuesta:
+
+[source, bash]
+----
+api_server/
+├── controllers
+├── models
+└── routes
+----
+
+Para crearla, ejecutaríamos estos comandos desde la carpeta del proyecto
+
+[source, bash]
+----
+$ mkdir -p api_server/models
+$ mkdir -p api_server/controllers
+$ mkdir -p api_server/routes
+----
+
+### Inicializar la base de datos
+
+De cara a poder trabajar en la API, desde la shell de MongoDB inicializaremos una base de datos de ejemplo que incluya una colección con al menos un documento para poder hacer las pruebas con operaciones `GET`. La base de datos se denomina `bookstore` y la colección `books`.
+
+[source, bash]
+----
+mongo> create database bookstore;
+mongo> use bookstore;
+mongo> db.books.insert(
+{
+	"_id" : ObjectId("5abe944733599b27439db885"),
+	"title" : "Harry Potter y la piedra filosofal",
+	"genre" : "Acción y aventura",
+	"description" : "Harry vive con sus horribles tíos y el insoportable primo Dudley, hasta que su ingreso en el Colegio Hogwarts de Magia y Hechicería cambia su vida para siempre. Allí aprenderá trucos y encantamientos fabulosos, y hará un puñado de buenos amigos... aunque también algunos temibles enemigos.",
+	"author" : "J.K. Rowling",
+	"publisher" : "Salamandra",
+	"pages" : 256,
+	"image_url" : "https://images-na.ssl-images-amazon.com/images/I/51lEw8wGCPL._SX312_BO1,204,203,200_.jpg"
+}
+);
+----
+
+### Conexión y lógica de conexión/desconexión
+
+.Archivo `api_server/models/db.js`
+[source, js]
+----
+var mongoose = require('mongoose'); <1>
+
+var dbURI = 'mongodb://localhost/bookstore'; <2>
+mongoose.connect(dbURI); <3>
+
+// CONNECTION EVENTS
+mongoose.connection.on('connected', function() {
+    console.log('Mongoose connected to ' + dbURI);
+});
+mongoose.connection.on('error', function(err) {
+    console.log('Mongoose connection error: ' + err);
+});
+mongoose.connection.on('disconnected', function() {
+    console.log('Mongoose disconnected');
+});
+
+// CAPTURE APP TERMINATION / RESTART EVENTS
+// To be called when process is restarted or terminated
+gracefulShutdown = function(msg, callback) {
+    mongoose.connection.close(function() {
+        console.log('Mongoose disconnected through ' + msg);
+        callback();
+    });
+};
+// For nodemon restarts
+process.once('SIGUSR2', function() {
+    gracefulShutdown('nodemon restart', function() {
+        process.kill(process.pid, 'SIGUSR2');
+    });
+});
+// For app termination
+process.on('SIGINT', function() {
+    gracefulShutdown('app termination', function() {
+        process.exit(0);
+    });
+});
+
+// BRING IN YOUR SCHEMAS & MODELS
+// require('./yourmodel'); <4>
+----
+<1> Uso de Mongoose
+<2> Inicialización de la URI de la base de datos `bookstore`
+<3> Conexión a la base de datos
+<4> Más adelante incluiremos aquí los modelos conforme los vayamos creando
+
+### Incluir el archivo `db.js` en `app.js`
+
+.Fragmento del archivo `app.js`
+[source, js]
+----
+...
+var createError = require('http-errors');
+var express = require('express');
+...
+require('./api_server/models/db'); <1>
+...
+----
+<1> Conectar a la base de datos y cargar los modelos
+
+Si lanzamos la aplicación desde la terminal con `nodemon` sobre la carpeta del proyecto obtenderemos
+
+[source, bash]
+----
+Mongoose connected to mongodb://localhost/bookstore
+----
+
+## Creación del primer endpoint
+
+### Creación del modelo
+
+En Mongoose todo comienza con un esquema. De acuerdo con la https://mongoosejs.com/docs/guide.html[documentación de Mongoose], cada esquema se corresponde con una colección MongoDB y define la estructura de los documentos en la colección. En cada esquema definimos los campos, con sus tipos y restricciones.
+
+Una vez creada la definición del esquema, se convierte a un _modelo_, que es con el que se trabajará desde la aplicación. Los modelos se crean pasando el nombre que tendrá el modelo y el nombre del esquema a partir del que se crean.
+
+[source, js]
+----
+mongoose.model(modelName, schema)
+----
+
+A continuación se muestra el modelo para los libros de la aplicación de ejemplo.
+
+.El archivo `api_server/models/book.js`
+[source, js]
+----
+var mongoose = require('mongoose');
+
+var bookSchema = mongoose.Schema({ <1>
+    title: {
+        type: String,
+        required: true
+    },
+    genre: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String
+    },
+    author: {
+        type: String,
+        required: true
+    },
+    publisher: {
+        type: String
+    },
+    pages: {
+        type: Number
+    },
+    image_url: {
+        type: String
+    }
+});
+
+mongoose.model('Book', bookSchema); <2>
+----
+<1> Creación del esquema
+<2> Creación del modelo `Book` a partir del esquema `bookSchema`
+
+Una vez definido el modelo, lo incluiremos al final del archivo `db.js`
+
+.Carga del modelo en el archivo `api_server/models/db.js`
+
+[source, js]
+----
+...
+require('./book');
+----
+
+### Creación de un controlador básico
+
+Nuestra API deberá ofrecer una serie de endpoints con cada una de las operaciones permitidas. Cada endpoint será resuelto por su propio controlador. 
+
+Para ver cómo funciona esto, comenzaremos creando un controlador para una operación sencilla de recuperación de un libro cualquiera sin entrar todavía en el paso de parámetros. 
+
+.Primer controlador en el archivo `api_server/controllers/book.js`
+[source, js]
+----
+var mongoose = require('mongoose'); <1>
+var Book = mongoose.model('Book'); <2>
+
+module.exports.bookFindOne = function(req, res) { <3>
+    Book <4>
+    .findOne() <5>
+    .exec( <6>
+        function(err, book) { <7>
+            return res <8>
+            .status(200)
+            .send(book);
+        });
+    };
+----
+<1> Objeto Mongoose para interactuar con MongoDB
+<2> Modelo que se corresponde con la colección `books` de MongoDB
+<3> Controlador implementado mediante la función asíncrona `bookFindOne`. El controlador recibe la petición en `req` y devolverá el resultado en `res`
+<4> Uso del modelo
+<5> Llamada a la función `findOne` de Mongoose, que se corresponde con la función `findOne` de MongoDB
+<6> Ejecución de la consulta y paso del resultado a una función asíncrona
+<7> Función asíncrona que se ejecuta tras la consulta y que devuelve los resultados. El objeto `err` será el objeto en el que se deuelva el error en caso de que se produzca. Si todo funciona correctamente, el resultado se pasa a `book`
+<8> Se devuelve el resultado `book` con el estado 200 en el objeto `res` del controlador
+
+Un controlador más elaborado contendría un control de errores mínimo como el que se muestra a continuación
+
+.Añadiendo control de errores al controlador en el archivo `api_server/controllers/book.js`
+[source, js]
+----
+var mongoose = require('mongoose');
+var Book = mongoose.model('Book'); 
+
+var sendJSONresponse = function(res, status, content) {
+  res.status(status);
+  res.json(content);
+};
+
+module.exports.bookFindOne = function(req, res) {
+  console.log('Finding book details', req.params);
+  Book
+  .findOne()
+  .exec(function(err, book) {
+    if (!book) {
+      sendJSONresponse(res, 404, {
+        "message": "book not found"
+      });
+      return;
+    } else if (err) {
+      console.log(err);
+      sendJSONresponse(res, 404, err);
+      return;
+    }
+    console.log(book);
+    sendJSONresponse(res, 200, book);
+  });
+};
+----
+
+### Creación de la ruta
+
+Tras crear el controlador procedemos a conectarlo a una ruta. De esta forma al usar esa ruta con un método HTTP concreto se desencadenará la ejecución del controlador.
+
+.El archivo `api_server/routes/index.js`
+[source, js]
+----
+var express = require('express');
+var router = express.Router();
+var ctrlBook = require('../controllers/book'); <1>
+
+router.get('/', ctrlBook.bookFindOne); <2>
+
+module.exports = router;
+----
+<1> Archivo con el código del controlador
+<2> Asociar la ejecución del controlador `bookFindOne` a una llamada `GET` a la raíz
+
+### Incoporación del archivo de rutas en `app.js`
+
+Una vez creado el archivo de rutas para la API, lo cargaremos en `app.js`, ya que el archivo de rutas predeterminado es para la aplicación Jade que crea al inicializarse el proyecto Express.
+
+.Incoporación del archivo de rutas a `app.js`
+
+[source, js]
+----
+...
+var apiRouter = require('./api_server/routes/index'); <1>
+...
+app.use('/api', apiRouter); <2>
+...
+----
+<1> Archivo que contiene las rutas a atender y las funciones que las gestionarán
+<2> Ruta en la que se atenderán las llamadas a la API
+
+El endpoint se puede probar en 
+
+[source, bash]
+----
+localhost:3000/api
+----
+
+y devolverá un libro almacenado.
+
+[NOTE]
+====
+Una vez creado el primer endpoint, los siguientes se crean de forma más sencilla debido a que ya está creada la infraestrucutra que soporta la API (estructura de directorios, archivo `db.js` con la lógica de conexión/desconexion a MongoDB, creación de los archivos de rutas y controlador, creación de los esquemas y modelos Mongoose y adaptación del archivo `app.js` para tratar con la carpeta de la API).
+
+El procedimiento a seguir para crear nuevos endpoints será:
+
+. Añadir la nueva nueva función del controlador al archivo del controlador
+. Añadir la nueva ruta al archivo de rutas para asociar el nuevo enpoint con la función creada en el controlador
+====
+
+## Creación de otros endpoints de consulta (GET)
+
+Los parámetros se pasan en la ruta precedidos de dos puntos y se reciben en el controlador con el nombre del parámetro sin los dos puntos en `req.param.nombre-del-parametro`.
+
+### Obtener libros por ID
+
+#### Creación de la función en el controlador
+
+.Fragmento del archivo `api_server/controllers/book.js`
+
+[source, js]
+----
+....
+module.exports.bookFindById = function(req, res) {
+    if (req.params && req.params.id) { <1>
+        Book
+        .findById(req.params.id) <2>
+        .exec(
+            function(err, book) {
+                if (!book) { <3>
+                    return res
+                    .status(404)
+                    .send({"message": "book not found"});
+                } else if (err) {
+                    return res
+                    .status(404)
+                    .send(err);
+                }
+                return res <4>
+                .status(200)
+                .send(book);
+            }
+        );
+    } else {
+        return res
+        .status(404)
+        .send({"message": "No book in the request"});
+    }
+};
+----
+<1> Accederemos a `req.params` para saber si se han pasado parámetros y a `req.params.id` para acceder al parámetro `id`
+<2> Llamada a la función `findById` de Mongoose para recuperar un documento por su _Id_
+<3> Comprobamos en la función de callback si se ha devuelto un libro
+<4> Se devuelve el resultado `book` con el estado 200 en el objeto `res` del controlador
+
+#### Creación de la ruta
+
+Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método HTTP a la función definida en el archivos del controlador.
+
+.Fragmento del archivo `api_server/routes/index.js`
+
+[source, js]
+----
+...
+router.get('/id/:id', ctrlBook.bookFindById); <1>
+...
+----
+<1> Los parámetros se pasan precedidos de dos puntos (`:`)
+
+El endpoint se puede probar en 
+
+[source, bash]
+----
+localhost:3000/api/id/5abe944733599b27439db885
+----
+
+y devolverá el libro solicitado.
+
+### Obtener libros por género
+
+En este ejemplo veremos la implementación de un endpoint que devuelve una lista de libros. El endpoint tomará el género como parámetro.
+
+#### Creación del controlador
+
+.Fragmento del archivo `api_server/models/book.js`
+
+[source, js]
+----
+...
+module.exports.bookFindByGenre = function(req, res) {
+    if (req.params && req.params.genre) { <1>
+        Book
+        .find({genre: req.params.genre}) <2>
+        .exec(
+            function(err, books) {
+                if (!books) { <3>
+                    return res
+                    .status(404)
+                    .send({"message": "genre not found"});
+                } else if (err) {
+                    return res
+                    .status(404)
+                    .send(err);
+                }
+                return res <4>
+                .status(200)
+                .send(books);
+            }
+        );
+    } else {
+        return res
+        .status(404)
+        .send({"message": "No `genre` in request"});
+    }
+};
+...
+----
+<1> Accederemos a `req.params` para saber si se han pasado parámetros y a `req.params.genre` para acceder al parámetro `genre`
+<2> Llamada a la función `find` de Mongoose, que se corresponde con la función `find` de Mongo, y se le pasarán las condiciones de la consulta en forma de documento JSON, al igual que en MongoDB
+<3> Comprobamos en la función de callback si se han devuelto libros
+<4> Se devuelve el resultado `books` con el estado 200 en el objeto `res` del controlador
+
+#### Creación de la ruta
+
+.Fragmento del archivo `api_server/routes/index.js`
+
+[source, js]
+----
+...
+router.get('/genre/:genre', ctrlBook.bookFindByGenre);
+...
+----
+
+El endpoint se puede probar en 
+
+[source, bash]
+----
+localhost:3000/api/genre/Historia
+----
+
+y devolverá los libros del género solicitado.
+
+## Las otras operaciones CRUD
+
+Una vez visto cómo realizar operaciones de recuperación (`GET`), veremos cómo realizar el resto de operaciones CRUD.
+
+Seguiremos el mismo procedimiento, creando primero la función que resuelve el endpoint en el controlador y añadiendo después la ruta del endpoint al archivo de rutas.
+
+### Creación de documentos (POST)
+
+#### Creación del controlador
+
+Los documentos se crean en Mongoose con el método `create`. Los parámetros se recogen en `req.body.nombre-parametro`.
+
+Para el envío de parámetros del POST desde Postman, los haremos añadiendo parejas clave-valor en x-www-form-urlencoded.
+
+image::post-book.png[]
+
+.Fragmento del archivo `api_server/controllers/book.js`
+
+[source, js]
+----
+....
+module.exports.bookCreate = function(req, res) {
+  console.log('Finding book details', req.params);
+  Book
+  .create({
+    title: req.body.title,
+    genre: req.body.genre,
+    description: req.body.description,
+    author: req.body.author,
+    publisher: req.body.publisher,
+    pages: req.body.pages,
+    image_url: req.body.image_url
+  },function(err, book) {
+    if (err) {
+      console.log(err);
+      sendJSONresponse(res, 400, err);
+    }
+    console.log(book);
+    sendJSONresponse(res, 201, book);
+  });
+};
+----
+
+#### Creación de la ruta
+
+
+.Fragmento del archivo `api_server/routes/index.js`
+
+[source, js]
+----
+...
+router.post('/book', ctrlBook.bookCreate);
+...
+----
+
+### Eliminación de documentos (DELETE)
+
+#### Creación del controlador
+
+.Fragmento del archivo `api_server/controllers/book.js`
+
+[source, js]
+----
+...
+module.exports.bookDelete = function(req, res) {
+  console.log('Finding book details', req.params);
+  if (req.params && req.params.id) {
+    Book
+    .findByIdAndDelete(req.params.id)
+    .exec(
+      function(err, book) {
+        if (err) {
+          console.log(err);
+          sendJSONresponse(res, 400, err);
+          return;
+        }
+        console.log(book);
+        sendJSONresponse(res, 204, null);
+      });
+    } else {
+      sendJsonResponse(res, 404, {
+        "message": "No id in the request"
+      });
+    }
+  };
+----
+
+#### Creación de la ruta
+
+.Fragmento del archivo `api_server/routes/index.js`
+
+[source, js]
+----
+....
+router.delete('/book/:id', ctrlBook.bookDelete);
+....
+----
+
+### Actualización de documentos (PUT)
+
+La actualización se realizará pasando el id del documento a modificar y los campos a actualizar. Se actualizarán sólo los campos pasados en el PUT.
+
+#### Creación del controlador
+
+.Fragmento del archivo `api_server/controllers/book.js`
+[source, js]
+----
+  module.exports.bookUpdate = function(req, res) {
+    console.log('Finding book details', req.params);
+    if (req.params && req.params.id) {
+      Book
+      .findById(req.params.id)
+      .exec(
+        function(err, book) {
+          if (err) {
+            console.log(err);
+            sendJSONresponse(res, 400, err);
+            return;
+          }
+          if (req.body.title) {
+            book.title = req.body.title;
+          }
+          if (req.body.genre) {
+            book.genre = req.body.genre;
+          }
+          if (req.body.description) {
+            book.description = req.body.description;
+          }
+          if (req.body.author) {
+            book.author = req.body.author;
+          }
+          if (req.body.publisher) {
+            book.publisher = req.body.publisher;
+          }
+          if (req.body.pages) {
+            book.pages = req.body.pages;
+          }
+          if (req.body.image_url) {
+            book.image_url = req.body.image_url;
+          }
+          book.save(function (err, book) {
+            if (err) {
+              sendJSONresponse(res, 404, err);
+            }
+            else {
+              sendJSONresponse(res, 200, book);
+            }
+          });
+        });
+      } else {
+        sendJsonResponse(res, 404, {
+          "message": "No id in the request"
+        });
+      }
+    };
+----
+
+#### Creación de la ruta
+
+.Fragmento del archivo `api_server/routes/index.js`
+
+[source, js]
+----
+...
+router.put('/book/:id', ctrlBook.bookUpdate);
+...
+----
+
+## Consumir de la API REST
+
+### Configuración de carpetas
+
+[source, bash]
+----
+app_server/
+├── controllers
+├── routes
+└── views
+----
+
+[source, bash]
+----
+$ mkdir -p app_server/views
+$ mkdir -p app_server/controllers
+$ mkdir -p app_server/routes
+----
+
+### Creación del controlador 
+
+.El archivo `app_server/controllers/books.js`
+[source, js]
+----
+var request = require('request'); <1>
+var apiOptions = { <2>
+  server: 'http://localhost:3000/api'
+};
+
+var renderBooksPage = function(req, res, responseBody) { <3>
+  res.render('index', { 
+    title: 'Express',
+    books: responseBody <4>
+  });
+
+};
+
+module.exports.bookList = function(req, res, next) {
+  var path = '/';
+  var requestOptions = { <5>
+    url: apiOptions.server + path,
+    method: 'GET',
+    json: {},
+    qs: {}
+  };
+
+  request(requestOptions, function(err, response, responseBody) { <6>
+    renderBooksPage(req, res, responseBody); <7>
+  });
+};
+----
+<1>
+<2>
+<3>
+<4>
+<5>
+<6>
+<7>
+
+### Creación de la ruta
+
+.El archivo `app_server/routes/index.js`
+[source, js]
+----
+var express = require('express');
+var router = express.Router();
+var ctrlBooks = require('../controllers/books'); <1>
+
+/* GET home page. */
+router.get('/', ctrlBooks.bookList); <2>
+
+module.exports = router;
+----
+<1>
+<2>
+
+### Creación de la vista
+
+.El archivo `app_server/views/index.jade`
+[source, jade]
+----
+extends layout
+
+block content
+  h1= title
+  p Welcome to #{title} <1>
+  each book in books <2>
+    p= book.title <3>
+----
+<1>
+<2>
+<3>
+
+### Modificación del archivo `app.js`
+
+.Fragmento del archivo `app.js`
+[source, js]
+----
+...
+var indexRouter = require('./app_server/routes/index'); <1>
+...
+app.set('views', path.join(__dirname, 'app_server', 'views')); <2>
+...
+----
+<1>
+<2>
+
+## Acceso a la API mediante JWT
+
+Un JSON Web Token (JWT) ofrece una forma de asegurar el acceso en una aplicación. Se trata de un objeto JSON cifrado en una cadena que puede ser decodificado por la aplicación y el servidor.
+
+Para el proceso de login el usuario envía sus credenciales al servidor a través de la API. El servidor valida las credenciales (p.e. usando una base de datos) y devuelve un token al navegador. El navegador almacenará este token para reutilizarlo después.
+
+Las API no guardan estado y no saben quién está realizando la llamada. En cada llamada se enviará el token al endpoint. La API decodificará el token y determinará si el usuario está autorizado a realizar esa operación.
+
+.Partes de un JWT
+****
+Un JWT consta de tres cadenas separadas por puntos:
+
+* Cabecera: Objeto JSON cifrado con el tipo algoritmo de hashing usado.
+* Payload: Objeto JSON cifrado con los datos, es decir, el cuerpo en sí del token
+* Firma: Hash cifrado de la cabecera y el payload usando un _secreto_ que sólo conoce el servidor que ha creado el token.
+****
+
+### Generación de un JWT desde Express
+
+Existen librerías para generar JWT, como es `jsonwebtoken`. La instalaremos en nuestro proyecto con 
+
+[source, bash]
+----
+$ npm install jsonwebtoken --save
+----
+
+:numbered!: 
+
+## Apéndice A. Códigos de estado HTTP frecuentes
+
+.Códigos de estado HTTP más frecuentes
+[width="100%",options="header"]
+|====================
+| Status  | code | case
+| 200 | OK  | A successful GET or PUT request
+| 201 | Created | A successful POST request
+| 204 | No content | A successful DELETE request
+| 400 | Bad request | An unsuccessful GET, POST, or PUT request, due to invalid content 
+| 401 | Unauthorized | Requesting a restricted URL with incorrect credentials
+| 403 | Forbidden | Making a request that isn’t allowed 
+| 404 | Not found | Unsuccessful request due to an incorrect parameter in the URL 
+| 500 | Internal server error | Problem with your server or the database server 
+|====================
+
