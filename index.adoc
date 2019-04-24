@@ -545,6 +545,8 @@ module.exports.bookFindByGenre = function(req, res) {
 
 #### Creación de la ruta
 
+Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método HTTP a la función definida en el archivos del controlador.
+
 .Fragmento del archivo `api_server/routes/index.js`
 
 [source, js]
@@ -567,7 +569,7 @@ y devolverá los libros del género solicitado.
 
 Una vez visto cómo realizar operaciones de recuperación (`GET`), veremos cómo realizar el resto de operaciones CRUD.
 
-Seguiremos el mismo procedimiento, creando primero la función que resuelve el endpoint en el controlador y añadiendo después la ruta del endpoint al archivo de rutas.
+Seguiremos el mismo procedimiento anterior, creando primero la función que resuelve el endpoint en el controlador y añadiendo después la ruta del endpoint al archivo de rutas.
 
 ### Creación de documentos (POST)
 
@@ -586,29 +588,34 @@ image::post-book.png[]
 ....
 module.exports.bookCreate = function(req, res) {
     Book
-    .create({
-        title: req.body.title,
+    .create({ <1>
+        title: req.body.title, <2>
         genre: req.body.genre,
         description: req.body.description,
         author: req.body.author,
         publisher: req.body.publisher,
         pages: req.body.pages,
         image_url: req.body.image_url
-    },function(err, book) {
-        if (err) {
+    },function(err, book) { 
+        if (err) { <3>
             return res
             .status(400)
             .send(err);
         }
-        return res
+        return res <4>
         .status(201)
         .send(book);
     });
 };
 ----
+<1> Llamada a la función `create` de Mongoose, que creará un documento en MongoDB de acuerdo al esquema definido para la colección
+<2> Los valores a insertar son recogidos en `req.body.nombreDelParametro` (p.e. `req.body.title`, `req.body.genre`, ...)
+<3> Comprobamos en la función de callback si se ha producido un error al insertar
+<4> Se devuelve el código de estado 200 y el libro creado como resultado
 
 #### Creación de la ruta
 
+Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método HTTP a la función definida en el archivos del controlador.
 
 .Fragmento del archivo `api_server/routes/index.js`
 
@@ -621,6 +628,8 @@ router.post('/book', ctrlBook.bookCreate);
 
 ### Eliminación de documentos (DELETE)
 
+La eliminación se realizará pasando el id del documento a eliminar
+
 #### Creación del controlador
 
 .Fragmento del archivo `api_server/controllers/book.js`
@@ -629,12 +638,12 @@ router.post('/book', ctrlBook.bookCreate);
 ----
 ...
 module.exports.bookDelete = function(req, res) {
-    if (req.params && req.params.id) {
+    if (req.params && req.params.id) { <1>
         Book
-        .findByIdAndDelete(req.params.id)
+        .findByIdAndDelete(req.params.id) <2>
         .exec(
             function(err, book) {
-                if (err) {
+                if (err) { <3>
                     return res
                     .status(400)
                     .send(err);
@@ -651,8 +660,14 @@ module.exports.bookDelete = function(req, res) {
     }
 };
 ----
+<1> Accederemos a `req.params` para saber si se han pasado parámetros y a `req.params.id` para acceder al parámetro `id`
+<2> Llamada a la función `findByIdAndDelete` de Mongoose, inspirada en la función `findOneAndDelete` de Mongo, y se le pasará como parámetro el `id` del libro a borrar
+<3> Comprobamos en la función de callback si se ha producido un error
+<4> Se devuelve el código de estado 204 y `null` que es el convenio para eliminaciones satisfactorias
 
 #### Creación de la ruta
+
+Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método HTTP a la función definida en el archivos del controlador.
 
 .Fragmento del archivo `api_server/routes/index.js`
 
@@ -673,17 +688,17 @@ La actualización se realizará pasando el id del documento a modificar y los ca
 [source, js]
 ----
 module.exports.bookUpdate = function(req, res) {
-    if (req.params && req.params.id) {
+    if (req.params && req.params.id) { <1>
         Book
-        .findById(req.params.id)
+        .findById(req.params.id) <2>
         .exec(
             function(err, book) {
-                if (err) {
+                if (err) { <3>
                     return res
                     .status(400)
                     .send(err);
                 }
-                if (req.body.title) {
+                if (req.body.title) { <4>
                     book.title = req.body.title;
                 }
                 if (req.body.genre) {
@@ -704,14 +719,14 @@ module.exports.bookUpdate = function(req, res) {
                 if (req.body.image_url) {
                     book.image_url = req.body.image_url;
                 }
-                book.save(function (err, book) {
-                    if (err) {
+                book.save(function (err, book) { <5>
+                    if (err) { <6>
                         return res
                         .status(404)
                         .send(err);
                     }
                     else {
-                        return res
+                        return res <7>
                         .status(200)
                         .send(book);
                     }
@@ -725,8 +740,17 @@ module.exports.bookUpdate = function(req, res) {
     }
 };
 ----
+<1> Accederemos a `req.params` para saber si se han pasado parámetros y a `req.params.id` para acceder al parámetro `id`
+<2> Llamada a la función `findById` de Mongoose pasándole el `id` como argumento
+<3> Comprobamos en la función de callback si no se han producido errores
+<4> Se comprueba si se han pasado valores para cada campo del documento comporbando los parámetros pasados
+<5> Llamada a la función `save` de Mongoose para almacenar las modificaciones 
+<6> Se comprueba si se ha producido algún error
+<7> Se devuelve el estado (200) y el libro modificado, que es el convenio en operaciones de modificación
 
 #### Creación de la ruta
+
+Ahora sólo faltaría añadir la ruta del endpoint en el archivo de rutas asociando la ruta y el método HTTP a la función definida en el archivos del controlador.
 
 .Fragmento del archivo `api_server/routes/index.js`
 
