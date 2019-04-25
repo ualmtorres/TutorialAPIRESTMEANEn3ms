@@ -464,11 +464,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#trueconsumir-de-la-api-rest">6. Consumir de la API REST</a>
 <ul class="sectlevel2">
-<li><a href="#trueconfiguraci-n-de-carpetas-2">6.1. Configuración de carpetas</a></li>
-<li><a href="#truecreaci-n-del-controlador-5">6.2. Creación del controlador</a></li>
-<li><a href="#truecreaci-n-de-la-ruta-7">6.3. Creación de la ruta</a></li>
-<li><a href="#truecreaci-n-de-la-vista">6.4. Creación de la vista</a></li>
-<li><a href="#truemodificaci-n-del-archivo-code-app-js-code">6.5. Modificación del archivo <code>app.js</code></a></li>
+<li><a href="#truecreaci-n-del-controlador-5">6.1. Creación del controlador</a></li>
+<li><a href="#truecreaci-n-de-la-ruta-7">6.2. Creación de la ruta</a></li>
+<li><a href="#truecreaci-n-de-la-vista">6.3. Creación de la vista</a></li>
+<li><a href="#truemodificaci-n-del-archivo-code-app-js-code">6.4. Modificación del archivo <code>app.js</code></a></li>
 </ul>
 </li>
 <li><a href="#trueacceso-a-la-api-mediante-jwt">7. Acceso a la API mediante JWT</a>
@@ -476,9 +475,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#truegeneraci-n-de-un-jwt-desde-express">7.1. Generación de un JWT desde Express</a></li>
 </ul>
 </li>
-<li><a href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes">Apéndice A. Códigos de estado HTTP frecuentes</a>
-<ul class="sectlevel2">
+<li><a href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes">Apéndice A. Códigos de estado HTTP frecuentes</a></li>
 <li><a href="#trueap-ndice-b-base-de-datos-de-ejemplo">Apéndice B. Base de datos de ejemplo</a></li>
+<li><a href="#trueap-ndice-c-aplicaci-n-base-creada-por-express">Apéndice C. Aplicación base creada por Express</a>
+<ul class="sectlevel2">
+<li><a href="#trueel-archivo-code-app-js-code">El archivo <code>app.js</code></a></li>
+<li><a href="#truelas-vistas-iniciales">Las vistas iniciales</a></li>
+<li><a href="#truela-ruta-y-el-controlador-inicial">La ruta y el controlador inicial</a></li>
 </ul>
 </li>
 </ul>
@@ -1537,8 +1540,12 @@ router.put('/book/:id', ctrlBook.bookUpdate);
 <div class="sect1">
 <h2 id="trueconsumir-de-la-api-rest"><a class="anchor" href="#trueconsumir-de-la-api-rest"></a>6. Consumir de la API REST</h2>
 <div class="sectionbody">
-<div class="sect2">
-<h3 id="trueconfiguraci-n-de-carpetas-2"><a class="anchor" href="#trueconfiguraci-n-de-carpetas-2"></a>6.1. Configuración de carpetas</h3>
+<div class="paragraph">
+<p>Para ilustrar cómo usar la API REST desarrollada anteriormente desarrollaremos un pequeño ejemplo que muestre la lista de libros devueltos por el endpoint <code>localhost:3000/api/books</code></p>
+</div>
+<div class="paragraph">
+<p>De forma predeterminada, la aplicación Express tiene las rutas y las vistas en directorios justo debajo del directorio de la aplicación. Para una mejor organización crearemos un directorio <code>app_server</code> para incluir los directorios de las rutas, controladores y vistas, tal y como se muestra a continuacion.</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-bash" data-lang="bash">app_server/
@@ -1547,6 +1554,9 @@ router.put('/book/:id', ctrlBook.bookUpdate);
 └── views</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Podemos crear esa estructura con los comandos siguientes</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-bash" data-lang="bash">$ mkdir -p app_server/views
@@ -1554,9 +1564,19 @@ $ mkdir -p app_server/controllers
 $ mkdir -p app_server/routes</code></pre>
 </div>
 </div>
-</div>
 <div class="sect2">
-<h3 id="truecreaci-n-del-controlador-5"><a class="anchor" href="#truecreaci-n-del-controlador-5"></a>6.2. Creación del controlador</h3>
+<h3 id="truecreaci-n-del-controlador-5"><a class="anchor" href="#truecreaci-n-del-controlador-5"></a>6.1. Creación del controlador</h3>
+<div class="paragraph">
+<p>Para hacer uso de la API REST desarrollada anteriormente realizaremos peticiones HTTP a usando un objeto <code>request</code> disponible en el paquete <code>request</code>. Lo instalaremos en nuesro proyecto con</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash" data-lang="bash">$ npm install request --save</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Crearemos un controlador denominado <code>books.js</code> para mostrar el listado de libros y estará en la ruta creada <code>app_server/controllers</code></p>
+</div>
 <div class="listingblock">
 <div class="title">El archivo <code>app_server/controllers/books.js</code></div>
 <div class="content">
@@ -1573,33 +1593,63 @@ var renderBooksPage = function(req, res, responseBody) { <i class="conum" data-v
 
 };
 
-module.exports.bookList = function(req, res, next) {
+module.exports.bookList = function(req, res, next) { <i class="conum" data-value="5"></i><b>(5)</b>
   var path = '/';
-  var requestOptions = { <i class="conum" data-value="5"></i><b>(5)</b>
+  var requestOptions = { <i class="conum" data-value="6"></i><b>(6)</b>
     url: apiOptions.server + path,
     method: 'GET',
     json: {},
     qs: {}
   };
 
-  request(requestOptions, function(err, response, responseBody) { <i class="conum" data-value="6"></i><b>(6)</b>
-    renderBooksPage(req, res, responseBody); <i class="conum" data-value="7"></i><b>(7)</b>
+  request(requestOptions, function(err, response, responseBody) { <i class="conum" data-value="7"></i><b>(7)</b>
+    renderBooksPage(req, res, responseBody); <i class="conum" data-value="8"></i><b>(8)</b>
   });
 };</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>&lt;1&gt;
-&lt;2&gt;
-&lt;3&gt;
-&lt;4&gt;
-&lt;5&gt;
-&lt;6&gt;
-&lt;7&gt;</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Paquete que ofrece una forma sencilla de realizar operaciones HTTP</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Variable para almacenar la ruta base</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Función de carga de la vista. Se le inyectan los datos que tiene que presentar (título y lista de libros)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Listado de libros a mostrar en la vista</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Controlador para mostrar el listado de libros</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Opciones configuradas que necesita el objeto <code>request</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>Llamada a la API y creación de la función asíncrona</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="8"></i><b>8</b></td>
+<td>Función que resuelve la presentación de la vista tras recuperar los datos de la API</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
-<h3 id="truecreaci-n-de-la-ruta-7"><a class="anchor" href="#truecreaci-n-de-la-ruta-7"></a>6.3. Creación de la ruta</h3>
+<h3 id="truecreaci-n-de-la-ruta-7"><a class="anchor" href="#truecreaci-n-de-la-ruta-7"></a>6.2. Creación de la ruta</h3>
+<div class="paragraph">
+<p>Crearemos un archivo de rutas denominado <code>index.js</code> que contendrá todas las rutas que atienda la aplicación y estará en el directorio creado <code>app_server/routes</code></p>
+</div>
 <div class="listingblock">
 <div class="title">El archivo <code>app_server/routes/index.js</code></div>
 <div class="content">
@@ -1613,13 +1663,24 @@ router.get('/', ctrlBooks.bookList); <i class="conum" data-value="2"></i><b>(2)<
 module.exports = router;</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>&lt;1&gt;
-&lt;2&gt;</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Archivo de controladores</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Asociación de ruta a controlador</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
-<h3 id="truecreaci-n-de-la-vista"><a class="anchor" href="#truecreaci-n-de-la-vista"></a>6.4. Creación de la vista</h3>
+<h3 id="truecreaci-n-de-la-vista"><a class="anchor" href="#truecreaci-n-de-la-vista"></a>6.3. Creación de la vista</h3>
+<div class="paragraph">
+<p>Crearemos un archivo para la vista raíz denominado <code>index.js</code> que presentará el listado de libros y estará en el directorio creado <code>app_server/views</code>. Los datos a mostrar en la vista son inyectados por el controlador.</p>
+</div>
 <div class="listingblock">
 <div class="title">El archivo <code>app_server/views/index.jade</code></div>
 <div class="content">
@@ -1632,14 +1693,28 @@ block content
     p= book.title <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>&lt;1&gt;
-&lt;2&gt;
-&lt;3&gt;</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Título capturando el título proporcionado por el controlador</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Bucle para recorrer la lista de libros inyectados por el controlador</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Titulo del libro</td>
+</tr>
+</table>
 </div>
 </div>
 <div class="sect2">
-<h3 id="truemodificaci-n-del-archivo-code-app-js-code"><a class="anchor" href="#truemodificaci-n-del-archivo-code-app-js-code"></a>6.5. Modificación del archivo <code>app.js</code></h3>
+<h3 id="truemodificaci-n-del-archivo-code-app-js-code"><a class="anchor" href="#truemodificaci-n-del-archivo-code-app-js-code"></a>6.4. Modificación del archivo <code>app.js</code></h3>
+<div class="paragraph">
+<p>Dado que las vistas y los controladores ahora se encuentran dentro de la carpeta <code>app_server</code>, es necesario indicar este cambio en el archivo <code>app.js</code></p>
+</div>
 <div class="listingblock">
 <div class="title">Fragmento del archivo <code>app.js</code></div>
 <div class="content">
@@ -1650,9 +1725,17 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 ...</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>&lt;1&gt;
-&lt;2&gt;</p>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Incluir <code>app_server</code> en el patch de las rutas</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Incluir <code>app_server</code> en la ruta de las vistas</td>
+</tr>
+</table>
 </div>
 </div>
 </div>
@@ -1766,8 +1849,11 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 </tr>
 </tbody>
 </table>
-<div class="sect2">
-<h3 id="trueap-ndice-b-base-de-datos-de-ejemplo"><a class="anchor" href="#trueap-ndice-b-base-de-datos-de-ejemplo"></a>Apéndice B. Base de datos de ejemplo</h3>
+</div>
+</div>
+<div class="sect1">
+<h2 id="trueap-ndice-b-base-de-datos-de-ejemplo"><a class="anchor" href="#trueap-ndice-b-base-de-datos-de-ejemplo"></a>Apéndice B. Base de datos de ejemplo</h2>
+<div class="sectionbody">
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">mongo&gt; use bookstore;
@@ -1800,11 +1886,204 @@ mongo&gt; db.books.insertMany(
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="trueap-ndice-c-aplicaci-n-base-creada-por-express"><a class="anchor" href="#trueap-ndice-c-aplicaci-n-base-creada-por-express"></a>Apéndice C. Aplicación base creada por Express</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Al crear la aplicación con Express, se creó una estructura de archivos y directorios y una aplicacion web disponible en el puerto 3000</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./images/Express.png" alt="Express.png">
+</div>
+<div class="title">Figure 1. Aplicación web inicial creada por Express</div>
+</div>
+<div class="paragraph">
+<p>Esta aplicación web se carga porque en Express define una vista, una ruta y un controlador que se encarga de presentar la vista e inyectarle datos a la vista</p>
+</div>
+<div class="paragraph">
+<p>De forma predeterminada, las vistas de la aplicación inicial se guardan en el directorio <code>views</code> y las rutas en <code>routes</code>. Más adelante veremos como organizar estos directorios en un directorio que contenga los controladores, rutas y vistas de la aplicación.</p>
+</div>
+<div class="paragraph">
+<p>Por ahora basta con saber qué hay en el archivo <code>app.js</code> y cómo se carga la vista inicial de la aplicación.</p>
+</div>
+<div class="sect2">
+<h3 id="trueel-archivo-code-app-js-code"><a class="anchor" href="#trueel-archivo-code-app-js-code"></a>El archivo <code>app.js</code></h3>
+<div class="paragraph">
+<p>Tras la generación del proyecto con Express se ha configurado la aplicación para que use Jade como motor de plantillas. Además, se indica que las vistas se almacenan en el directorio <code>views</code> del directorio de la aplicación.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">....
+// view engine setup
+app.set('views', path.join(__dirname, 'views')); <i class="conum" data-value="1"></i><b>(1)</b>
+app.set('view engine', 'jade'); <i class="conum" data-value="2"></i><b>(2)</b>
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Se define como carpeta de vistas la carpeta <code>views</code> sobre el directorio de la aplicación (<code>__dirname</code>)</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Jade como motor de plantillas</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Además, en <code>app.js</code> se indica cómo responder a las peticiones que lleguen a la raíz (<code>/</code>). Para ello, se usará un archivo de rutas aparte que contendrá los endpoints relativos a la raíz junto con los controladores que resuelven las peticiones.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">...
+var indexRouter = require('./routes/index'); <i class="conum" data-value="1"></i><b>(1)</b>
+...
+app.use('/', indexRouter); <i class="conum" data-value="2"></i><b>(2)</b>
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Ubicación del archivo de rutas</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Uso de las rutas de <code>indexRouter</code> cuando lleguen peticiones a la raíz (<code>/</code>)</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="truelas-vistas-iniciales"><a class="anchor" href="#truelas-vistas-iniciales"></a>Las vistas iniciales</h3>
+<div class="paragraph">
+<p>Inicialmente Express crea 3 vistas en la carpeta <code>views</code> del proyecto:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>layout.jade</code>: Página de base que contiene componentes reutilizados en otras páginas (p.e. la definición de la estructura de documento HTML, la hoja de estilos, y demás).</p>
+</li>
+<li>
+<p><code>index.jade</code>: Página de inicio de la aplicacion</p>
+</li>
+<li>
+<p><code>error.jade</code>:</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>layout.jade</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">doctype html
+html
+  head
+    title= title <i class="conum" data-value="1"></i><b>(1)</b>
+    link(rel='stylesheet', href='/stylesheets/style.css') <i class="conum" data-value="2"></i><b>(2)</b>
+  body
+    block content <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>El segundo <code>title</code> es una variable cuyo valor es inyectado por el control y presentado al cargar la vista</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Carga de la hoja de estilos</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Define un <em>marcador</em> que será reemplazado posterioremente por otras vistas que extiendan este archivo</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>En Jade, el sangrado indica la creación de un subelemento</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>index.jade</code></div>
+<div class="content">
+<pre>extends layout <i class="conum" data-value="1"></i><b>(1)</b>
+
+block content <i class="conum" data-value="2"></i><b>(2)</b>
+  h1= title <i class="conum" data-value="3"></i><b>(3)</b>
+  p Welcome to #{title} <i class="conum" data-value="4"></i><b>(4)</b></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Archivo del que se hereda</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Definición del <em>marcador</em> que reemplazará el bloque en el archivo <code>layout</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Variable cuyo valor será inyectado por el controlador al carga la vista</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Variable cuyo valor será inyectado por el controlador al carga la vista</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="truela-ruta-y-el-controlador-inicial"><a class="anchor" href="#truela-ruta-y-el-controlador-inicial"></a>La ruta y el controlador inicial</h3>
+<div class="paragraph">
+<p>Inicialmente, Express crea una ruta en la raíz y un controlador asociado en el archivo <code>routes/index.js</code> con el código siguiente</p>
+</div>
+<div class="listingblock">
+<div class="title">Fragmento de <code>routes/index.js</code> con la ruta y controlador predeterminado para la raíz</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">...
+/* GET home page. */
+router.get('/', function(req, res, next) { <i class="conum" data-value="1"></i><b>(1)</b>
+  res.render('index', { title: 'Express' }); <i class="conum" data-value="2"></i><b>(2)</b>
+});
+...</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Ruta raíz y controlador asociado definido sobre la marcha</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Mostrar la vista <code>index</code> pasándole un JSON con una variable <code>title</code></td>
+</tr>
+</table>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-04-24 17:59:28 CEST
+Last updated 2019-04-25 14:26:35 CEST
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/github.min.css">

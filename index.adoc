@@ -768,7 +768,9 @@ router.put('/book/:id', ctrlBook.bookUpdate);
 
 ## Consumir de la API REST
 
-### Configuración de carpetas
+Para ilustrar cómo usar la API REST desarrollada anteriormente desarrollaremos un pequeño ejemplo que muestre la lista de libros devueltos por el endpoint `localhost:3000/api/books`
+
+De forma predeterminada, la aplicación Express tiene las rutas y las vistas en directorios justo debajo del directorio de la aplicación. Para una mejor organización crearemos un directorio `app_server` para incluir los directorios de las rutas, controladores y vistas, tal y como se muestra a continuacion.
 
 [source, bash]
 ----
@@ -778,6 +780,8 @@ app_server/
 └── views
 ----
 
+Podemos crear esa estructura con los comandos siguientes
+
 [source, bash]
 ----
 $ mkdir -p app_server/views
@@ -786,6 +790,15 @@ $ mkdir -p app_server/routes
 ----
 
 ### Creación del controlador 
+
+Para hacer uso de la API REST desarrollada anteriormente realizaremos peticiones HTTP a usando un objeto `request` disponible en el paquete `request`. Lo instalaremos en nuesro proyecto con 
+
+[source, bash]
+----
+$ npm install request --save
+----
+
+Crearemos un controlador denominado `books.js` para mostrar el listado de libros y estará en la ruta creada `app_server/controllers` 
 
 .El archivo `app_server/controllers/books.js`
 [source, js]
@@ -803,29 +816,32 @@ var renderBooksPage = function(req, res, responseBody) { <3>
 
 };
 
-module.exports.bookList = function(req, res, next) {
+module.exports.bookList = function(req, res, next) { <5>
   var path = '/';
-  var requestOptions = { <5>
+  var requestOptions = { <6>
     url: apiOptions.server + path,
     method: 'GET',
     json: {},
     qs: {}
   };
 
-  request(requestOptions, function(err, response, responseBody) { <6>
-    renderBooksPage(req, res, responseBody); <7>
+  request(requestOptions, function(err, response, responseBody) { <7>
+    renderBooksPage(req, res, responseBody); <8>
   });
 };
 ----
-<1>
-<2>
-<3>
-<4>
-<5>
-<6>
-<7>
+<1> Paquete que ofrece una forma sencilla de realizar operaciones HTTP
+<2> Variable para almacenar la ruta base
+<3> Función de carga de la vista. Se le inyectan los datos que tiene que presentar (título y lista de libros)
+<4> Listado de libros a mostrar en la vista
+<5> Controlador para mostrar el listado de libros
+<6> Opciones configuradas que necesita el objeto `request` 
+<7> Llamada a la API y creación de la función asíncrona
+<8> Función que resuelve la presentación de la vista tras recuperar los datos de la API
 
 ### Creación de la ruta
+
+Crearemos un archivo de rutas denominado `index.js` que contendrá todas las rutas que atienda la aplicación y estará en el directorio creado `app_server/routes` 
 
 .El archivo `app_server/routes/index.js`
 [source, js]
@@ -839,10 +855,12 @@ router.get('/', ctrlBooks.bookList); <2>
 
 module.exports = router;
 ----
-<1>
-<2>
+<1> Archivo de controladores
+<2> Asociación de ruta a controlador
 
 ### Creación de la vista
+
+Crearemos un archivo para la vista raíz denominado `index.js` que presentará el listado de libros y estará en el directorio creado `app_server/views`. Los datos a mostrar en la vista son inyectados por el controlador.
 
 .El archivo `app_server/views/index.jade`
 [source, jade]
@@ -855,11 +873,13 @@ block content
   each book in books <2>
     p= book.title <3>
 ----
-<1>
-<2>
-<3>
+<1> Título capturando el título proporcionado por el controlador
+<2> Bucle para recorrer la lista de libros inyectados por el controlador
+<3> Titulo del libro
 
 ### Modificación del archivo `app.js`
+
+Dado que las vistas y los controladores ahora se encuentran dentro de la carpeta `app_server`, es necesario indicar este cambio en el archivo `app.js`
 
 .Fragmento del archivo `app.js`
 [source, js]
@@ -870,8 +890,8 @@ var indexRouter = require('./app_server/routes/index'); <1>
 app.set('views', path.join(__dirname, 'app_server', 'views')); <2>
 ...
 ----
-<1>
-<2>
+<1> Incluir `app_server` en el patch de las rutas
+<2> Incluir `app_server` en la ruta de las vistas
 
 ## Acceso a la API mediante JWT
 
@@ -919,7 +939,7 @@ TODO ......
 | 500 | Internal server error | Problem with your server or the database server 
 |====================
 
-### Apéndice B. Base de datos de ejemplo
+## Apéndice B. Base de datos de ejemplo
 
 [source, js]
 ----
@@ -949,3 +969,103 @@ mongo> db.books.insertMany(
     }
 ]
 );
+----
+
+## Apéndice C. Aplicación base creada por Express
+
+Al crear la aplicación con Express, se creó una estructura de archivos y directorios y una aplicacion web disponible en el puerto 3000
+
+.Aplicación web inicial creada por Express
+image::Express.png[]
+
+Esta aplicación web se carga porque en Express define una vista, una ruta y un controlador que se encarga de presentar la vista e inyectarle datos a la vista
+
+De forma predeterminada, las vistas de la aplicación inicial se guardan en el directorio `views` y las rutas en `routes`. Más adelante veremos como organizar estos directorios en un directorio que contenga los controladores, rutas y vistas de la aplicación.
+
+Por ahora basta con saber qué hay en el archivo `app.js` y cómo se carga la vista inicial de la aplicación.
+
+### El archivo `app.js`
+
+Tras la generación del proyecto con Express se ha configurado la aplicación para que use Jade como motor de plantillas. Además, se indica que las vistas se almacenan en el directorio `views` del directorio de la aplicación.
+
+[source, js]
+----
+....
+// view engine setup
+app.set('views', path.join(__dirname, 'views')); <1>
+app.set('view engine', 'jade'); <2>
+...
+----
+<1> Se define como carpeta de vistas la carpeta `views` sobre el directorio de la aplicación (`__dirname`)
+<2> Jade como motor de plantillas
+
+Además, en `app.js` se indica cómo responder a las peticiones que lleguen a la raíz (`/`). Para ello, se usará un archivo de rutas aparte que contendrá los endpoints relativos a la raíz junto con los controladores que resuelven las peticiones.
+
+[source, js]
+----
+...
+var indexRouter = require('./routes/index'); <1>
+...
+app.use('/', indexRouter); <2>
+...
+----
+<1> Ubicación del archivo de rutas
+<2> Uso de las rutas de `indexRouter` cuando lleguen peticiones a la raíz (`/`)
+
+### Las vistas iniciales
+
+Inicialmente Express crea 3 vistas en la carpeta `views` del proyecto:
+
+* `layout.jade`: Página de base que contiene componentes reutilizados en otras páginas (p.e. la definición de la estructura de documento HTML, la hoja de estilos, y demás).
+* `index.jade`: Página de inicio de la aplicacion
+* `error.jade`: 
+
+.El archivo `layout.jade`
+[source, js]
+----
+doctype html
+html
+  head
+    title= title <1>
+    link(rel='stylesheet', href='/stylesheets/style.css') <2>
+  body 
+    block content <3>
+----
+<1> El segundo `title` es una variable cuyo valor es inyectado por el control y presentado al cargar la vista
+<2> Carga de la hoja de estilos
+<3> Define un _marcador_ que será reemplazado posterioremente por otras vistas que extiendan este archivo
+
+[NOTE]
+====
+En Jade, el sangrado indica la creación de un subelemento
+====
+
+.El archivo `index.jade`
+----
+extends layout <1> 
+
+block content <2>
+  h1= title <3>
+  p Welcome to #{title} <4>
+----
+<1> Archivo del que se hereda
+<2> Definición del _marcador_ que reemplazará el bloque en el archivo `layout`
+<3> Variable cuyo valor será inyectado por el controlador al carga la vista
+<4> Variable cuyo valor será inyectado por el controlador al carga la vista
+
+### La ruta y el controlador inicial
+
+Inicialmente, Express crea una ruta en la raíz y un controlador asociado en el archivo `routes/index.js` con el código siguiente
+
+.Fragmento de `routes/index.js` con la ruta y controlador predeterminado para la raíz
+[source, js]
+----
+...
+/* GET home page. */
+router.get('/', function(req, res, next) { <1>
+  res.render('index', { title: 'Express' }); <2>
+});
+...
+----
+<1> Ruta raíz y controlador asociado definido sobre la marcha
+<2> Mostrar la vista `index` pasándole un JSON con una variable `title`
