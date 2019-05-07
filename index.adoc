@@ -895,11 +895,13 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <2>
 
 ## Acceso a la API mediante JWT
 
-Un JSON Web Token (JWT) ofrece una forma de asegurar el acceso en una aplicación. Se trata de un objeto JSON cifrado en una cadena que puede ser decodificado por la aplicación y el servidor.
+Node.js y Express no mantienen información sobre la sesión de cada usuario en el servidor. Además, en aplicaciones SPA el código es entregado al cliente al iniciar la aplicación y después no hay posibilidad de interactuar con el servidor para manejar los datos de las sesiones. Por tanto, el enfoque tradicional para la autenticación no es válido en aplicaciones MEAN. La solución a este problema pasa por almacenar cierta información sobre la sesión en el navegador de forma que sea la propia aplicación la que decide lo que se puede mostrar o no a cada usuario. Una forma de guardar estos datos en el cliente es mediante JSON Web Token (JWT)
 
-Para el proceso de login el usuario envía sus credenciales al servidor a través de la API. El servidor valida las credenciales (p.e. usando una base de datos) y devuelve un token al navegador. El navegador almacenará este token para reutilizarlo después.
+JWT ofrece una forma de asegurar el acceso en una aplicación. Se trata de un objeto JSON cifrado en una cadena que puede ser decodificado por la aplicación y el servidor.
 
-Las API no guardan estado y no saben quién está realizando la llamada. En cada llamada se enviará el token al endpoint. La API decodificará el token y determinará si el usuario está autorizado a realizar esa operación.
+Para el proceso de login el usuario envía sus credenciales al servidor a través de la API. El servidor valida las credenciales (p.e. usando una base de datos) y devuelve un token al navegador. El navegador almacenará este token para reutilizarlo después. Con este enfoque los datos de las sesiones no se guardan en el servidor; se guardan en el navegador.
+
+Las API no guardan estado y no saben quién está realizando la llamada. En cada llamada se enviará el token al endpoint a través de un `middleware`. El middleware decodificará el token y determinará si el usuario está autorizado a realizar esa operación. En caso de estar autorizado se continuará con la llamada a la función que resuelve el endpoint.
 
 .Partes de un JWT
 ****
@@ -907,7 +909,7 @@ Un JWT consta de tres cadenas separadas por puntos:
 
 * Cabecera: Objeto JSON cifrado con el tipo algoritmo de hashing usado.
 * Payload: Objeto JSON cifrado con los datos, es decir, el cuerpo en sí del token
-* Firma: Hash cifrado de la cabecera y el payload usando un _secreto_ que sólo conoce el servidor que ha creado el token.
+* Firma: Hash cifrado de la cabecera y el payload usando un _secreto_ que sólo conoce el servidor que ha creado el token. La firma permite determinar si el token ha sido creado usando el secreto establecido. Si no se ha usado dicho secreto concluiremos que el token es falso y se rechazará la petición.
 ****
 
 ### Generación de un JWT desde Express
@@ -919,7 +921,213 @@ Existen librerías para generar JWT, como es `jsonwebtoken`. La instalaremos en 
 $ npm install jsonwebtoken --save
 ----
 
-TODO ......
+A continuación crearemos un archivo que contiene la clave secreta de cifrado. Por motivos de seguridad, este archivo será excluido del control de versiones. Primero intetará tomarse el valor para el secreto desde la variable de entorno. Si no está configurada se le dará el valor predeterminado del archivo `config.js`.
+
+.El archivo `config.js`
+[source, js]
+----
+module.exports = {
+    TOKEN_SECRET: process.env.TOKEN_SECRET || "password"
+  };
+----
+
+La creación del token se realizará a través de una función `createToken`. La función construye el _payload_ tomando los valores que queramos incluir en el token (p.e. nombre de usuario) y otros valores interesantes según el caso (p.e. fecha de expedición y fecha de caducidad). La función devolverá el token firmado con el secreto configurado anteriormente.
+
+.El archivo `service.js`
+[source, js]
+----
+var jwt = require('jsonwebtoken'); <1>
+var moment = require('moment');
+var config = require('./config');
+
+exports.createToken = function(user) { <2>
+  var payload = {
+    sub: user, <3>
+    iat: moment().unix(),
+    exp: moment().add(2, "minutes").unix(), <4>
+  };
+  return jwt.sign(payload, config.TOKEN_SECRET); <5>
+};
+----
+<1> Uso del módulo `jsonwebtoken`
+<2> La función de creación del token toma al usuario como argumento en este ejemplo
+<3> Inclusión del usuario en el payload
+<4> Configuración de la caducidad del token como 2 minutos despúes de la fecha actual
+<5> Creación del token añadiéndole el secreto
+
+El archivo de autenticación se encarga de registrar usuarios y comprobar si pueden iniciar sesión (p.e. comprobando si existen en la base de datos de usuarios registrados). Si todo va bien se devolverá un token que permitirá el acceso a los endpoints privados de la API.
+
+.El archivo `controllers/auth.js`
+[source, js]
+----
+var service = require('../service'); <1>
+
+//var user = '{"username": "mtorres", "password": "password"}';
+username = 'mtorres';
+
+exports.emailSignup = function(req, res) { <2>
+    return res
+    .status(200)
+    .send({token: service.createToken(username)});
+    
+};
+
+exports.emailLogin = function(req, res) { <3>
+    if (req.body.email == 'mtorres') {
+        return res
+        .status(200)
+        .send({token: service.createToken(username)});        
+    }
+};
+----
+<1> Carga del servicio para poder usar la función `createToken`
+<2> Función de registro de usuarios. Tras un registro satisfactorio devuelve un token de acceso a la API
+<3> Función de inicio de sesión. Tras un inicio de sesión satisfactorio devuelve un token de acceso a la API
+
+
+[NOTE]
+====
+Estas funciones sólo son un _mock_. Realmente debería haber una interacción con una base de datos de usuarios.
+=
+
+A continuación tenemos que crear el _middleware_. Su función es la de actuar como una fase intermedia entre la petición y su resolución con el objetivo de determinar si se trata de una petición autorizada.
+
+La función `ensureAuthenticated` pasará la ejecución a la etapa siguiente si se cumplen todas estas condiciones:
+
+* La petición incluye una autorización en la cabecera
+* La signatura incluye el secreto concertado
+* El token no está caducado
+
+.El archivo `middleware.js`
+[source, js]
+----
+var jwt = require('jsonwebtoken'); <1>
+var moment = require('moment');
+var config = require('./config');
+
+exports.ensureAuthenticated = function(req, res, next) {
+  if(!req.headers.authorization) { <2>
+    return res
+    .status(403)
+    .send({message: "Petición sin cabecera de autorización"});
+  }
+  
+  var token = req.headers.authorization.split(" ")[1]; <3>
+  var payload = jwt.verify(token, config.TOKEN_SECRET, function(err, payload) {
+    if (err) {
+      switch (err.name) { <4>
+        case 'JsonWebTokenError':
+          return res.status(401).send({message: "Signatura incorrecta"});
+        case 'TokenExpiredError':
+          return res.status(401).send({message: "Token caducado"});
+        default:
+          return res.status(401).send(err);
+      }
+    }
+    req.user = payload.sub; <5>
+    next(); <6>
+  });
+}
+----
+<1> Uso del módulo `jsonwebtoken`
+<2> Comprobación de la existencia de autorización en la cabecera
+<3> Obtención del token incluido en la cabecera
+<4> Comprobación de la existencia de errores
+<5> Carga de datos del payload desde el miidleware para pasarlos a la etapa siguiente
+<6> Paso a la etapa siguiente
+
+El archivo de rutas indica cómo resolver cada una de las peticiones, tanto de login/registro como de los endpoints en sí de la API. Para una mayor modularidad, incluiremos el código de los controladores fuera del archivo de rutas.
+
+.El archivo `routes/index.js`
+[source, js]
+----
+var express = require('express');
+var router = express.Router();
+
+var middleware = require('../middleware'); <1>
+var ctrlAuth = require('../controllers/auth'); <2>
+var ctrlBook = require('../controllers/book'); <3>
+
+// Rutas de registro y login
+router.post('/auth/signup', ctrlAuth.emailSignup); <4>
+router.post('/auth/login', ctrlAuth.emailLogin); 
+
+// Ruta accesible con token no caducado
+router.get('/private',middleware.ensureAuthenticated, ctrlBook.getBook); <5>
+
+module.exports = router;
+----
+<1> Carga del middleware para comprobar si se permite el acceso
+<2> Carga del controlador de registro y login
+<3> Carga del controlador de libros
+<4> Rutas de registro y login
+<5> Llamada al controlador condicionado al resultado de la evaluación (comprobación de token) del middleware
+
+Por último, el controlador incluyen las funciones que atienden a las peticiones de la API. Estas funciones no tienen en cuenta la autenticación. Las API REST no tienen estado. Del control de acceso se encarga el middleware. Las funciones de los controladores se ejecutarán en función de lo que indique el middleware.
+
+.El archivo `controllers/book.js`
+[source, js]
+----
+module.exports.getBook = function(req, res) {
+    return res.status(200).send({"title": "Harry Potter y la piedra filosofal"});  
+};
+----
+
+[NOTE]
+====
+Esta función es sólo un _mock_. Realmente debería recuperar la información de una base de datos
+====
+
+### Uso de la API mediante autenticación
+
+Veamos el funcionamiento de la API ante las diversas situaciones que se pueden presentar:
+
+* Si intentamos acceder sin cabecera al endpoint privado (`localhost:3000/private`) devuelve el código de error `403 Forbidden` con el siguiente contenido:
+
++
+[source, json]
+----
+{
+    "message": "Petición sin cabecera de autorización"
+}
+----
+
+* Si nos registramos (`localhost:3000/auth/signup`) devuelve el código de estado `200 OK` con el token:
+
++
+[source, json]
+----
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtdG9ycmVzIiwiaWF0IjoxNTU3MjExNzM5LCJleHAiOjE1NTcyMTE4NTl9.SySZ9rd8iJHUKgsia0pY7YvLTmAkVwJdK-wkQkTJiB8"
+}
+----
+
+* Si iniciamos sesión (`localhost:3000/auth/login`) pasando los datos de login (p.e. `username`), se devuelve el código de estado `200 OK` con el token:
+
++
+[source, json]
+----
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtdG9ycmVzIiwiaWF0IjoxNTU3MjExODA1LCJleHAiOjE1NTcyMTE5MjV9.28a8e5y8uYFuo_t7pNuGVzP1qsl4iyAQ_v2503RYC-8"
+}
+----
+
+* Si accedemos al endpoint privado (`localhost:3000/private`) con el token antes de que caduque devuelve el código de estado `200 OK` con el resultado de la petición
+
+[NOTE]
+====
+El token lo pasaremos como _Bearer Token_ en el desplegable _Tipo_ de la pestaña _Autorización_ de Postman
+====
+
+* Si intentamos acceder al endpoint privado (`localhost:3000/private`) una vez caducado el token (el caduca a los 2 minutos), se devuelve el código de error `401 Unauthorized` con el siguiente contenido:
+
++
+[source, json]
+----
+{
+    "message": "Token caducado"
+}
+----
 
 :numbered!: 
 

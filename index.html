@@ -475,15 +475,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#truegeneraci-n-de-un-jwt-desde-express">7.1. Generación de un JWT desde Express</a></li>
 </ul>
 </li>
-<li><a href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes">Apéndice A. Códigos de estado HTTP frecuentes</a></li>
-<li><a href="#trueap-ndice-b-base-de-datos-de-ejemplo">Apéndice B. Base de datos de ejemplo</a></li>
-<li><a href="#trueap-ndice-c-aplicaci-n-base-creada-por-express">Apéndice C. Aplicación base creada por Express</a>
-<ul class="sectlevel2">
-<li><a href="#trueel-archivo-code-app-js-code">El archivo <code>app.js</code></a></li>
-<li><a href="#truelas-vistas-iniciales">Las vistas iniciales</a></li>
-<li><a href="#truela-ruta-y-el-controlador-inicial">La ruta y el controlador inicial</a></li>
-</ul>
-</li>
 </ul>
 </div>
 </div>
@@ -1744,13 +1735,16 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 <h2 id="trueacceso-a-la-api-mediante-jwt"><a class="anchor" href="#trueacceso-a-la-api-mediante-jwt"></a>7. Acceso a la API mediante JWT</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Un JSON Web Token (JWT) ofrece una forma de asegurar el acceso en una aplicación. Se trata de un objeto JSON cifrado en una cadena que puede ser decodificado por la aplicación y el servidor.</p>
+<p>Node.js y Express no mantienen información sobre la sesión de cada usuario en el servidor. Además, en aplicaciones SPA el código es entregado al cliente al iniciar la aplicación y después no hay posibilidad de interactuar con el servidor para manejar los datos de las sesiones. Por tanto, el enfoque tradicional para la autenticación no es válido en aplicaciones MEAN. La solución a este problema pasa por almacenar cierta información sobre la sesión en el navegador de forma que sea la propia aplicación la que decide lo que se puede mostrar o no a cada usuario. Una forma de guardar estos datos en el cliente es mediante JSON Web Token (JWT)</p>
 </div>
 <div class="paragraph">
-<p>Para el proceso de login el usuario envía sus credenciales al servidor a través de la API. El servidor valida las credenciales (p.e. usando una base de datos) y devuelve un token al navegador. El navegador almacenará este token para reutilizarlo después.</p>
+<p>JWT ofrece una forma de asegurar el acceso en una aplicación. Se trata de un objeto JSON cifrado en una cadena que puede ser decodificado por la aplicación y el servidor.</p>
 </div>
 <div class="paragraph">
-<p>Las API no guardan estado y no saben quién está realizando la llamada. En cada llamada se enviará el token al endpoint. La API decodificará el token y determinará si el usuario está autorizado a realizar esa operación.</p>
+<p>Para el proceso de login el usuario envía sus credenciales al servidor a través de la API. El servidor valida las credenciales (p.e. usando una base de datos) y devuelve un token al navegador. El navegador almacenará este token para reutilizarlo después. Con este enfoque los datos de las sesiones no se guardan en el servidor; se guardan en el navegador.</p>
+</div>
+<div class="paragraph">
+<p>Las API no guardan estado y no saben quién está realizando la llamada. En cada llamada se enviará el token al endpoint a través de un <code>middleware</code>. El middleware decodificará el token y determinará si el usuario está autorizado a realizar esa operación. En caso de estar autorizado se continuará con la llamada a la función que resuelve el endpoint.</p>
 </div>
 <div class="sidebarblock">
 <div class="content">
@@ -1767,7 +1761,7 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 <p>Payload: Objeto JSON cifrado con los datos, es decir, el cuerpo en sí del token</p>
 </li>
 <li>
-<p>Firma: Hash cifrado de la cabecera y el payload usando un <em>secreto</em> que sólo conoce el servidor que ha creado el token.</p>
+<p>Firma: Hash cifrado de la cabecera y el payload usando un <em>secreto</em> que sólo conoce el servidor que ha creado el token. La firma permite determinar si el token ha sido creado usando el secreto establecido. Si no se ha usado dicho secreto concluiremos que el token es falso y se rechazará la petición.</p>
 </li>
 </ul>
 </div>
@@ -1784,14 +1778,327 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 </div>
 </div>
 <div class="paragraph">
-<p>TODO &#8230;&#8203;&#8230;&#8203;</p>
+<p>A continuación crearemos un archivo que contiene la clave secreta de cifrado. Por motivos de seguridad, este archivo será excluido del control de versiones. Primero intetará tomarse el valor para el secreto desde la variable de entorno. Si no está configurada se le dará el valor predeterminado del archivo <code>config.js</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>config.js</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">module.exports = {
+    TOKEN_SECRET: process.env.TOKEN_SECRET || "password"
+  };</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>La creación del token se realizará a través de una función <code>createToken</code>. La función construye el <em>payload</em> tomando los valores que queramos incluir en el token (p.e. nombre de usuario) y otros valores interesantes según el caso (p.e. fecha de expedición y fecha de caducidad). La función devolverá el token firmado con el secreto configurado anteriormente.</p>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>service.js</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">var jwt = require('jsonwebtoken'); <i class="conum" data-value="1"></i><b>(1)</b>
+var moment = require('moment');
+var config = require('./config');
+
+exports.createToken = function(user) { <i class="conum" data-value="2"></i><b>(2)</b>
+  var payload = {
+    sub: user, <i class="conum" data-value="3"></i><b>(3)</b>
+    iat: moment().unix(),
+    exp: moment().add(2, "minutes").unix(), <i class="conum" data-value="4"></i><b>(4)</b>
+  };
+  return jwt.sign(payload, config.TOKEN_SECRET); <i class="conum" data-value="5"></i><b>(5)</b>
+};</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Uso del módulo <code>jsonwebtoken</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>La función de creación del token toma al usuario como argumento en este ejemplo</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Inclusión del usuario en el payload</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Configuración de la caducidad del token como 2 minutos despúes de la fecha actual</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Creación del token añadiéndole el secreto</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>El archivo de autenticación se encarga de registrar usuarios y comprobar si pueden iniciar sesión (p.e. comprobando si existen en la base de datos de usuarios registrados). Si todo va bien se devolverá un token que permitirá el acceso a los endpoints privados de la API.</p>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>controllers/auth.js</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">var service = require('../service'); <i class="conum" data-value="1"></i><b>(1)</b>
+
+//var user = '{"username": "mtorres", "password": "password"}';
+username = 'mtorres';
+
+exports.emailSignup = function(req, res) { <i class="conum" data-value="2"></i><b>(2)</b>
+    return res
+    .status(200)
+    .send({token: service.createToken(username)});
+
+};
+
+exports.emailLogin = function(req, res) { <i class="conum" data-value="3"></i><b>(3)</b>
+    if (req.body.email == 'mtorres') {
+        return res
+        .status(200)
+        .send({token: service.createToken(username)});
+    }
+};</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Carga del servicio para poder usar la función <code>createToken</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Función de registro de usuarios. Tras un registro satisfactorio devuelve un token de acceso a la API</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Función de inicio de sesión. Tras un inicio de sesión satisfactorio devuelve un token de acceso a la API</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Estas funciones sólo son un <em>mock</em>. Realmente debería haber una interacción con una base de datos de usuarios.
+=</p>
+</div>
+<div class="paragraph">
+<p>A continuación tenemos que crear el <em>middleware</em>. Su función es la de actuar como una fase intermedia entre la petición y su resolución con el objetivo de determinar si se trata de una petición autorizada.</p>
+</div>
+<div class="paragraph">
+<p>La función <code>ensureAuthenticated</code> pasará la ejecución a la etapa siguiente si se cumplen todas estas condiciones:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>La petición incluye una autorización en la cabecera</p>
+</li>
+<li>
+<p>La signatura incluye el secreto concertado</p>
+</li>
+<li>
+<p>El token no está caducado</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>middleware.js</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">var jwt = require('jsonwebtoken'); <i class="conum" data-value="1"></i><b>(1)</b>
+var moment = require('moment');
+var config = require('./config');
+
+exports.ensureAuthenticated = function(req, res, next) {
+  if(!req.headers.authorization) { <i class="conum" data-value="2"></i><b>(2)</b>
+    return res
+    .status(403)
+    .send({message: "Petición sin cabecera de autorización"});
+  }
+
+  var token = req.headers.authorization.split(" ")[1]; <i class="conum" data-value="3"></i><b>(3)</b>
+  var payload = jwt.verify(token, config.TOKEN_SECRET, function(err, payload) {
+    if (err) {
+      switch (err.name) { <i class="conum" data-value="4"></i><b>(4)</b>
+        case 'JsonWebTokenError':
+          return res.status(401).send({message: "Signatura incorrecta"});
+        case 'TokenExpiredError':
+          return res.status(401).send({message: "Token caducado"});
+        default:
+          return res.status(401).send(err);
+      }
+    }
+    req.user = payload.sub; <i class="conum" data-value="5"></i><b>(5)</b>
+    next(); <i class="conum" data-value="6"></i><b>(6)</b>
+  });
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Uso del módulo <code>jsonwebtoken</code></td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Comprobación de la existencia de autorización en la cabecera</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Obtención del token incluido en la cabecera</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Comprobación de la existencia de errores</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Carga de datos del payload desde el miidleware para pasarlos a la etapa siguiente</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Paso a la etapa siguiente</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>El archivo de rutas indica cómo resolver cada una de las peticiones, tanto de login/registro como de los endpoints en sí de la API. Para una mayor modularidad, incluiremos el código de los controladores fuera del archivo de rutas.</p>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>routes/index.js</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">var express = require('express');
+var router = express.Router();
+
+var middleware = require('../middleware'); <i class="conum" data-value="1"></i><b>(1)</b>
+var ctrlAuth = require('../controllers/auth'); <i class="conum" data-value="2"></i><b>(2)</b>
+var ctrlBook = require('../controllers/book'); <i class="conum" data-value="3"></i><b>(3)</b>
+
+// Rutas de registro y login
+router.post('/auth/signup', ctrlAuth.emailSignup); <i class="conum" data-value="4"></i><b>(4)</b>
+router.post('/auth/login', ctrlAuth.emailLogin);
+
+// Ruta accesible con token no caducado
+router.get('/private',middleware.ensureAuthenticated, ctrlBook.getBook); <i class="conum" data-value="5"></i><b>(5)</b>
+
+module.exports = router;</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Carga del middleware para comprobar si se permite el acceso</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Carga del controlador de registro y login</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Carga del controlador de libros</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Rutas de registro y login</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Llamada al controlador condicionado al resultado de la evaluación (comprobación de token) del middleware</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Por último, el controlador incluyen las funciones que atienden a las peticiones de la API. Estas funciones no tienen en cuenta la autenticación. Las API REST no tienen estado. Del control de acceso se encarga el middleware. Las funciones de los controladores se ejecutarán en función de lo que indique el middleware.</p>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>controllers/book.js</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">module.exports.getBook = function(req, res) {
+    return res.status(200).send({"title": "Harry Potter y la piedra filosofal"});
+};</code></pre>
+</div>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Esta función es sólo un <em>mock</em>. Realmente debería recuperar la información de una base de datos</p>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph">
+<p><mark>#</mark> Uso de la API mediante autenticación</p>
+</div>
+<div class="paragraph">
+<p>Veamos el funcionamiento de la API ante las diversas situaciones que se pueden presentar:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Si intentamos acceder sin cabecera al endpoint privado (<code>localhost:3000/private</code>) devuelve el código de error <code>403 Forbidden</code> con el siguiente contenido:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json" data-lang="json">{
+    "message": "Petición sin cabecera de autorización"
+}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Si nos registramos (<code>localhost:3000/auth/signup</code>) devuelve el código de estado <code>200 OK</code> con el token:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json" data-lang="json">{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtdG9ycmVzIiwiaWF0IjoxNTU3MjExNzM5LCJleHAiOjE1NTcyMTE4NTl9.SySZ9rd8iJHUKgsia0pY7YvLTmAkVwJdK-wkQkTJiB8"
+}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Si iniciamos sesión (<code>localhost:3000/auth/login</code>) pasando los datos de login (p.e. <code>username</code>), se devuelve el código de estado <code>200 OK</code> con el token:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json" data-lang="json">{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtdG9ycmVzIiwiaWF0IjoxNTU3MjExODA1LCJleHAiOjE1NTcyMTE5MjV9.28a8e5y8uYFuo_t7pNuGVzP1qsl4iyAQ_v2503RYC-8"
+}</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Si accedemos al endpoint privado (<code>localhost:3000/private</code>) con el token antes de que caduque devuelve el código de estado <code>200 OK</code> con el resultado de la petición</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
+<div class="paragraph">
+<p>El token lo pasaremos como <em>Bearer Token</em> en el desplegable <em>Tipo</em> de la pestaña <em>Autorización</em> de Postman</p>
 </div>
-<div class="sect1">
-<h2 id="trueap-ndice-a-c-digos-de-estado-http-frecuentes"><a class="anchor" href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes"></a>Apéndice A. Códigos de estado HTTP frecuentes</h2>
-<div class="sectionbody">
+<div class="exampleblock">
+<div class="content">
+<div class="ulist">
+<ul>
+<li>
+<p>Si intentamos acceder al endpoint privado (<code>localhost:3000/private</code>) una vez caducado el token (el caduca a los 2 minutos), se devuelve el código de error <code>401 Unauthorized</code> con el siguiente contenido:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-json" data-lang="json">{
+    "message": "Token caducado"
+}</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>## Apéndice A. Códigos de estado HTTP frecuentes</p>
+</div>
 <table class="tableblock frame-all grid-all spread">
 <caption class="title">Table 1. Códigos de estado HTTP más frecuentes</caption>
 <colgroup>
@@ -1849,11 +2156,9 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p>## Apéndice B. Base de datos de ejemplo</p>
 </div>
-</div>
-<div class="sect1">
-<h2 id="trueap-ndice-b-base-de-datos-de-ejemplo"><a class="anchor" href="#trueap-ndice-b-base-de-datos-de-ejemplo"></a>Apéndice B. Base de datos de ejemplo</h2>
-<div class="sectionbody">
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">mongo&gt; use bookstore;
@@ -1884,11 +2189,9 @@ mongo&gt; db.books.insertMany(
 );</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>## Apéndice C. Aplicación base creada por Express</p>
 </div>
-</div>
-<div class="sect1">
-<h2 id="trueap-ndice-c-aplicaci-n-base-creada-por-express"><a class="anchor" href="#trueap-ndice-c-aplicaci-n-base-creada-por-express"></a>Apéndice C. Aplicación base creada por Express</h2>
-<div class="sectionbody">
 <div class="paragraph">
 <p>Al crear la aplicación con Express, se creó una estructura de archivos y directorios y una aplicacion web disponible en el puerto 3000</p>
 </div>
@@ -1907,8 +2210,9 @@ mongo&gt; db.books.insertMany(
 <div class="paragraph">
 <p>Por ahora basta con saber qué hay en el archivo <code>app.js</code> y cómo se carga la vista inicial de la aplicación.</p>
 </div>
-<div class="sect2">
-<h3 id="trueel-archivo-code-app-js-code"><a class="anchor" href="#trueel-archivo-code-app-js-code"></a>El archivo <code>app.js</code></h3>
+<div class="paragraph">
+<p><mark>#</mark> El archivo <code>app.js</code></p>
+</div>
 <div class="paragraph">
 <p>Tras la generación del proyecto con Express se ha configurado la aplicación para que use Jade como motor de plantillas. Además, se indica que las vistas se almacenan en el directorio <code>views</code> del directorio de la aplicación.</p>
 </div>
@@ -1957,9 +2261,9 @@ app.use('/', indexRouter); <i class="conum" data-value="2"></i><b>(2)</b>
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p><mark>#</mark> Las vistas iniciales</p>
 </div>
-<div class="sect2">
-<h3 id="truelas-vistas-iniciales"><a class="anchor" href="#truelas-vistas-iniciales"></a>Las vistas iniciales</h3>
 <div class="paragraph">
 <p>Inicialmente Express crea 3 vistas en la carpeta <code>views</code> del proyecto:</p>
 </div>
@@ -2004,20 +2308,13 @@ html
 </tr>
 </table>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
+</div>
+</div>
 <div class="paragraph">
 <p>En Jade, el sangrado indica la creación de un subelemento</p>
 </div>
-</td>
-</tr>
-</table>
-</div>
+<div class="exampleblock">
+<div class="content">
 <div class="listingblock">
 <div class="title">El archivo <code>index.jade</code></div>
 <div class="content">
@@ -2048,9 +2345,9 @@ block content <i class="conum" data-value="2"></i><b>(2)</b>
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<p><mark>#</mark> La ruta y el controlador inicial</p>
 </div>
-<div class="sect2">
-<h3 id="truela-ruta-y-el-controlador-inicial"><a class="anchor" href="#truela-ruta-y-el-controlador-inicial"></a>La ruta y el controlador inicial</h3>
 <div class="paragraph">
 <p>Inicialmente, Express crea una ruta en la raíz y un controlador asociado en el archivo <code>routes/index.js</code> con el código siguiente</p>
 </div>
@@ -2081,9 +2378,11 @@ router.get('/', function(req, res, next) { <i class="conum" data-value="1"></i><
 </div>
 </div>
 </div>
+</div>
+</div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-04-25 14:26:35 CEST
+Last updated 2019-05-07 09:37:00 CEST
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/github.min.css">
