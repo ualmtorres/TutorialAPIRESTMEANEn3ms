@@ -472,7 +472,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#trueacceso-a-la-api-mediante-jwt">7. Acceso a la API mediante JWT</a>
 <ul class="sectlevel2">
-<li><a href="#truegeneraci-n-de-un-jwt-desde-express">7.1. Generación de un JWT desde Express</a></li>
+<li><a href="#trueincorporaci-n-de-jwt-a-la-api-rest">7.1. Incorporación de JWT a la API REST</a></li>
+<li><a href="#trueuso-de-la-api-mediante-autenticaci-n">7.2. Uso de la API mediante autenticación</a></li>
+</ul>
+</li>
+<li><a href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes">Apéndice A. Códigos de estado HTTP frecuentes</a></li>
+<li><a href="#trueap-ndice-b-base-de-datos-de-ejemplo">Apéndice B. Base de datos de ejemplo</a></li>
+<li><a href="#trueap-ndice-c-aplicaci-n-base-creada-por-express">Apéndice C. Aplicación base creada por Express</a>
+<ul class="sectlevel2">
+<li><a href="#trueel-archivo-code-app-js-code">El archivo <code>app.js</code></a></li>
+<li><a href="#truelas-vistas-iniciales">Las vistas iniciales</a></li>
+<li><a href="#truela-ruta-y-el-controlador-inicial">La ruta y el controlador inicial</a></li>
 </ul>
 </li>
 </ul>
@@ -1768,7 +1778,68 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 </div>
 </div>
 <div class="sect2">
-<h3 id="truegeneraci-n-de-un-jwt-desde-express"><a class="anchor" href="#truegeneraci-n-de-un-jwt-desde-express"></a>7.1. Generación de un JWT desde Express</h3>
+<h3 id="trueincorporaci-n-de-jwt-a-la-api-rest"><a class="anchor" href="#trueincorporaci-n-de-jwt-a-la-api-rest"></a>7.1. Incorporación de JWT a la API REST</h3>
+<div class="paragraph">
+<p>A continuación se describen los pasos a seguir para crear una API REST basada en tokens.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Creación de los controladores, si no están creados previamente</p>
+</li>
+<li>
+<p>Instalación de las dependencias (<code>jsonwebtoken</code>)</p>
+</li>
+<li>
+<p>Creación de la clave secreta para firmar los tokens</p>
+</li>
+<li>
+<p>Creación de la función de creación de tokens</p>
+</li>
+<li>
+<p>Creación de las funciones autenticación (registro y login)</p>
+</li>
+<li>
+<p>Creación del middleware</p>
+</li>
+<li>
+<p>Creación de las rutas incluyendo el middleware</p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="truecreaci-n-de-los-controladores"><a class="anchor" href="#truecreaci-n-de-los-controladores"></a>7.1.1. Creación de los controladores</h4>
+<div class="paragraph">
+<p>Los controladores incluyen las funciones que atienden a las peticiones de la API. Estas funciones no tienen en cuenta la autenticación. Las API REST no tienen estado. Del control de acceso se encarga el middleware. Las funciones de los controladores se ejecutarán en función de lo que indique el middleware.</p>
+</div>
+<div class="listingblock">
+<div class="title">El archivo <code>controllers/book.js</code></div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">module.exports.getBook = function(req, res) {
+    return res.status(200).send({"title": "Harry Potter y la piedra filosofal"});
+};</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Se supone que la creación de los controladores ya estaba finalizada, pero se incluye aquí para que quede un ejemplo cerrado. Esta función es sólo un <em>mock</em>. Realmente debería recuperar la información de una base de datos</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="trueinstalaci-n-de-code-jsonwebtoken-code"><a class="anchor" href="#trueinstalaci-n-de-code-jsonwebtoken-code"></a>7.1.2. Instalación de <code>jsonwebtoken</code></h4>
+<div class="paragraph">
+<p>Generación de un JWT desde Express</p>
+</div>
 <div class="paragraph">
 <p>Existen librerías para generar JWT, como es <code>jsonwebtoken</code>. La instalaremos en nuestro proyecto con</p>
 </div>
@@ -1777,8 +1848,11 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 <pre class="highlightjs highlight"><code class="language-bash" data-lang="bash">$ npm install jsonwebtoken --save</code></pre>
 </div>
 </div>
+</div>
+<div class="sect3">
+<h4 id="truecreaci-n-de-la-clave-secreta"><a class="anchor" href="#truecreaci-n-de-la-clave-secreta"></a>7.1.3. Creación de la clave secreta</h4>
 <div class="paragraph">
-<p>A continuación crearemos un archivo que contiene la clave secreta de cifrado. Por motivos de seguridad, este archivo será excluido del control de versiones. Primero intetará tomarse el valor para el secreto desde la variable de entorno. Si no está configurada se le dará el valor predeterminado del archivo <code>config.js</code>.</p>
+<p>A continuación crearemos un archivo que contiene la clave secreta de firma de los tokens. Por motivos de seguridad, este archivo será excluido del control de versiones. Primero intetará tomarse el valor para el secreto desde la variable de entorno. Si no está configurada se le dará el valor predeterminado del archivo <code>config.js</code>.</p>
 </div>
 <div class="listingblock">
 <div class="title">El archivo <code>config.js</code></div>
@@ -1788,6 +1862,9 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
   };</code></pre>
 </div>
 </div>
+</div>
+<div class="sect3">
+<h4 id="truecreaci-n-del-token"><a class="anchor" href="#truecreaci-n-del-token"></a>7.1.4. Creación del token</h4>
 <div class="paragraph">
 <p>La creación del token se realizará a través de una función <code>createToken</code>. La función construye el <em>payload</em> tomando los valores que queramos incluir en el token (p.e. nombre de usuario) y otros valores interesantes según el caso (p.e. fecha de expedición y fecha de caducidad). La función devolverá el token firmado con el secreto configurado anteriormente.</p>
 </div>
@@ -1832,6 +1909,9 @@ exports.createToken = function(user) { <i class="conum" data-value="2"></i><b>(2
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="trueproceso-de-autenticaci-n"><a class="anchor" href="#trueproceso-de-autenticaci-n"></a>7.1.5. Proceso de autenticación</h4>
 <div class="paragraph">
 <p>El archivo de autenticación se encarga de registrar usuarios y comprobar si pueden iniciar sesión (p.e. comprobando si existen en la base de datos de usuarios registrados). Si todo va bien se devolverá un token que permitirá el acceso a los endpoints privados de la API.</p>
 </div>
@@ -1883,9 +1963,15 @@ exports.emailLogin = function(req, res) { <i class="conum" data-value="3"></i><b
 </td>
 <td class="content">
 <div class="paragraph">
-<p>Estas funciones sólo son un <em>mock</em>. Realmente debería haber una interacción con una base de datos de usuarios.
-=</p>
+<p>Estas funciones sólo son un <em>mock</em>. Realmente debería haber una interacción con una base de datos de usuarios.</p>
 </div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="truecreaci-n-del-middleware"><a class="anchor" href="#truecreaci-n-del-middleware"></a>7.1.6. Creación del middleware</h4>
 <div class="paragraph">
 <p>A continuación tenemos que crear el <em>middleware</em>. Su función es la de actuar como una fase intermedia entre la petición y su resolución con el objetivo de determinar si se trata de una petición autorizada.</p>
 </div>
@@ -1965,6 +2051,9 @@ exports.ensureAuthenticated = function(req, res, next) {
 </tr>
 </table>
 </div>
+</div>
+<div class="sect3">
+<h4 id="truecreaci-n-de-las-rutas"><a class="anchor" href="#truecreaci-n-de-las-rutas"></a>7.1.7. Creación de las rutas</h4>
 <div class="paragraph">
 <p>El archivo de rutas indica cómo resolver cada una de las peticiones, tanto de login/registro como de los endpoints en sí de la API. Para una mayor modularidad, incluiremos el código de los controladores fuera del archivo de rutas.</p>
 </div>
@@ -2012,29 +2101,10 @@ module.exports = router;</code></pre>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p>Por último, el controlador incluyen las funciones que atienden a las peticiones de la API. Estas funciones no tienen en cuenta la autenticación. Las API REST no tienen estado. Del control de acceso se encarga el middleware. Las funciones de los controladores se ejecutarán en función de lo que indique el middleware.</p>
-</div>
-<div class="listingblock">
-<div class="title">El archivo <code>controllers/book.js</code></div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-js" data-lang="js">module.exports.getBook = function(req, res) {
-    return res.status(200).send({"title": "Harry Potter y la piedra filosofal"});
-};</code></pre>
 </div>
 </div>
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Esta función es sólo un <em>mock</em>. Realmente debería recuperar la información de una base de datos</p>
-</div>
-<div class="exampleblock">
-<div class="content">
-<div class="paragraph">
-<p><mark>#</mark> Uso de la API mediante autenticación</p>
-</div>
+<div class="sect2">
+<h3 id="trueuso-de-la-api-mediante-autenticaci-n"><a class="anchor" href="#trueuso-de-la-api-mediante-autenticaci-n"></a>7.2. Uso de la API mediante autenticación</h3>
 <div class="paragraph">
 <p>Veamos el funcionamiento de la API ante las diversas situaciones que se pueden presentar:</p>
 </div>
@@ -2075,13 +2145,20 @@ module.exports = router;</code></pre>
 </li>
 </ul>
 </div>
-</div>
-</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
 <div class="paragraph">
 <p>El token lo pasaremos como <em>Bearer Token</em> en el desplegable <em>Tipo</em> de la pestaña <em>Autorización</em> de Postman</p>
 </div>
-<div class="exampleblock">
-<div class="content">
+</td>
+</tr>
+</table>
+</div>
 <div class="ulist">
 <ul>
 <li>
@@ -2096,9 +2173,12 @@ module.exports = router;</code></pre>
 </li>
 </ul>
 </div>
-<div class="paragraph">
-<p>## Apéndice A. Códigos de estado HTTP frecuentes</p>
 </div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="trueap-ndice-a-c-digos-de-estado-http-frecuentes"><a class="anchor" href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes"></a>Apéndice A. Códigos de estado HTTP frecuentes</h2>
+<div class="sectionbody">
 <table class="tableblock frame-all grid-all spread">
 <caption class="title">Table 1. Códigos de estado HTTP más frecuentes</caption>
 <colgroup>
@@ -2156,9 +2236,11 @@ module.exports = router;</code></pre>
 </tr>
 </tbody>
 </table>
-<div class="paragraph">
-<p>## Apéndice B. Base de datos de ejemplo</p>
 </div>
+</div>
+<div class="sect1">
+<h2 id="trueap-ndice-b-base-de-datos-de-ejemplo"><a class="anchor" href="#trueap-ndice-b-base-de-datos-de-ejemplo"></a>Apéndice B. Base de datos de ejemplo</h2>
+<div class="sectionbody">
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">mongo&gt; use bookstore;
@@ -2189,9 +2271,11 @@ mongo&gt; db.books.insertMany(
 );</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>## Apéndice C. Aplicación base creada por Express</p>
 </div>
+</div>
+<div class="sect1">
+<h2 id="trueap-ndice-c-aplicaci-n-base-creada-por-express"><a class="anchor" href="#trueap-ndice-c-aplicaci-n-base-creada-por-express"></a>Apéndice C. Aplicación base creada por Express</h2>
+<div class="sectionbody">
 <div class="paragraph">
 <p>Al crear la aplicación con Express, se creó una estructura de archivos y directorios y una aplicacion web disponible en el puerto 3000</p>
 </div>
@@ -2210,9 +2294,8 @@ mongo&gt; db.books.insertMany(
 <div class="paragraph">
 <p>Por ahora basta con saber qué hay en el archivo <code>app.js</code> y cómo se carga la vista inicial de la aplicación.</p>
 </div>
-<div class="paragraph">
-<p><mark>#</mark> El archivo <code>app.js</code></p>
-</div>
+<div class="sect2">
+<h3 id="trueel-archivo-code-app-js-code"><a class="anchor" href="#trueel-archivo-code-app-js-code"></a>El archivo <code>app.js</code></h3>
 <div class="paragraph">
 <p>Tras la generación del proyecto con Express se ha configurado la aplicación para que use Jade como motor de plantillas. Además, se indica que las vistas se almacenan en el directorio <code>views</code> del directorio de la aplicación.</p>
 </div>
@@ -2261,9 +2344,9 @@ app.use('/', indexRouter); <i class="conum" data-value="2"></i><b>(2)</b>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p><mark>#</mark> Las vistas iniciales</p>
 </div>
+<div class="sect2">
+<h3 id="truelas-vistas-iniciales"><a class="anchor" href="#truelas-vistas-iniciales"></a>Las vistas iniciales</h3>
 <div class="paragraph">
 <p>Inicialmente Express crea 3 vistas en la carpeta <code>views</code> del proyecto:</p>
 </div>
@@ -2308,13 +2391,20 @@ html
 </tr>
 </table>
 </div>
-</div>
-</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
 <div class="paragraph">
 <p>En Jade, el sangrado indica la creación de un subelemento</p>
 </div>
-<div class="exampleblock">
-<div class="content">
+</td>
+</tr>
+</table>
+</div>
 <div class="listingblock">
 <div class="title">El archivo <code>index.jade</code></div>
 <div class="content">
@@ -2345,9 +2435,9 @@ block content <i class="conum" data-value="2"></i><b>(2)</b>
 </tr>
 </table>
 </div>
-<div class="paragraph">
-<p><mark>#</mark> La ruta y el controlador inicial</p>
 </div>
+<div class="sect2">
+<h3 id="truela-ruta-y-el-controlador-inicial"><a class="anchor" href="#truela-ruta-y-el-controlador-inicial"></a>La ruta y el controlador inicial</h3>
 <div class="paragraph">
 <p>Inicialmente, Express crea una ruta en la raíz y un controlador asociado en el archivo <code>routes/index.js</code> con el código siguiente</p>
 </div>
@@ -2378,11 +2468,9 @@ router.get('/', function(req, res, next) { <i class="conum" data-value="1"></i><
 </div>
 </div>
 </div>
-</div>
-</div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-05-07 09:37:00 CEST
+Last updated 2019-05-07 18:17:18 CEST
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/github.min.css">

@@ -912,7 +912,38 @@ Un JWT consta de tres cadenas separadas por puntos:
 * Firma: Hash cifrado de la cabecera y el payload usando un _secreto_ que sólo conoce el servidor que ha creado el token. La firma permite determinar si el token ha sido creado usando el secreto establecido. Si no se ha usado dicho secreto concluiremos que el token es falso y se rechazará la petición.
 ****
 
-### Generación de un JWT desde Express
+### Incorporación de JWT a la API REST
+
+A continuación se describen los pasos a seguir para crear una API REST basada en tokens.
+
+. Creación de los controladores, si no están creados previamente
+. Instalación de las dependencias (`jsonwebtoken`)
+. Creación de la clave secreta para firmar los tokens
+. Creación de la función de creación de tokens
+. Creación de las funciones autenticación (registro y login)
+. Creación del middleware
+. Creación de las rutas incluyendo el middleware
+
+#### Creación de los controladores
+
+Los controladores incluyen las funciones que atienden a las peticiones de la API. Estas funciones no tienen en cuenta la autenticación. Las API REST no tienen estado. Del control de acceso se encarga el middleware. Las funciones de los controladores se ejecutarán en función de lo que indique el middleware.
+
+.El archivo `controllers/book.js`
+[source, js]
+----
+module.exports.getBook = function(req, res) {
+    return res.status(200).send({"title": "Harry Potter y la piedra filosofal"});  
+};
+----
+
+[NOTE]
+====
+Se supone que la creación de los controladores ya estaba finalizada, pero se incluye aquí para que quede un ejemplo cerrado. Esta función es sólo un _mock_. Realmente debería recuperar la información de una base de datos
+====
+
+#### Instalación de `jsonwebtoken`
+
+Generación de un JWT desde Express
 
 Existen librerías para generar JWT, como es `jsonwebtoken`. La instalaremos en nuestro proyecto con 
 
@@ -921,7 +952,9 @@ Existen librerías para generar JWT, como es `jsonwebtoken`. La instalaremos en 
 $ npm install jsonwebtoken --save
 ----
 
-A continuación crearemos un archivo que contiene la clave secreta de cifrado. Por motivos de seguridad, este archivo será excluido del control de versiones. Primero intetará tomarse el valor para el secreto desde la variable de entorno. Si no está configurada se le dará el valor predeterminado del archivo `config.js`.
+#### Creación de la clave secreta
+
+A continuación crearemos un archivo que contiene la clave secreta de firma de los tokens. Por motivos de seguridad, este archivo será excluido del control de versiones. Primero intetará tomarse el valor para el secreto desde la variable de entorno. Si no está configurada se le dará el valor predeterminado del archivo `config.js`.
 
 .El archivo `config.js`
 [source, js]
@@ -930,6 +963,8 @@ module.exports = {
     TOKEN_SECRET: process.env.TOKEN_SECRET || "password"
   };
 ----
+
+#### Creación del token
 
 La creación del token se realizará a través de una función `createToken`. La función construye el _payload_ tomando los valores que queramos incluir en el token (p.e. nombre de usuario) y otros valores interesantes según el caso (p.e. fecha de expedición y fecha de caducidad). La función devolverá el token firmado con el secreto configurado anteriormente.
 
@@ -954,6 +989,8 @@ exports.createToken = function(user) { <2>
 <3> Inclusión del usuario en el payload
 <4> Configuración de la caducidad del token como 2 minutos despúes de la fecha actual
 <5> Creación del token añadiéndole el secreto
+
+#### Proceso de autenticación
 
 El archivo de autenticación se encarga de registrar usuarios y comprobar si pueden iniciar sesión (p.e. comprobando si existen en la base de datos de usuarios registrados). Si todo va bien se devolverá un token que permitirá el acceso a los endpoints privados de la API.
 
@@ -988,7 +1025,9 @@ exports.emailLogin = function(req, res) { <3>
 [NOTE]
 ====
 Estas funciones sólo son un _mock_. Realmente debería haber una interacción con una base de datos de usuarios.
-=
+====
+
+#### Creación del middleware
 
 A continuación tenemos que crear el _middleware_. Su función es la de actuar como una fase intermedia entre la petición y su resolución con el objetivo de determinar si se trata de una petición autorizada.
 
@@ -1036,6 +1075,8 @@ exports.ensureAuthenticated = function(req, res, next) {
 <5> Carga de datos del payload desde el miidleware para pasarlos a la etapa siguiente
 <6> Paso a la etapa siguiente
 
+#### Creación de las rutas
+
 El archivo de rutas indica cómo resolver cada una de las peticiones, tanto de login/registro como de los endpoints en sí de la API. Para una mayor modularidad, incluiremos el código de los controladores fuera del archivo de rutas.
 
 .El archivo `routes/index.js`
@@ -1062,21 +1103,6 @@ module.exports = router;
 <3> Carga del controlador de libros
 <4> Rutas de registro y login
 <5> Llamada al controlador condicionado al resultado de la evaluación (comprobación de token) del middleware
-
-Por último, el controlador incluyen las funciones que atienden a las peticiones de la API. Estas funciones no tienen en cuenta la autenticación. Las API REST no tienen estado. Del control de acceso se encarga el middleware. Las funciones de los controladores se ejecutarán en función de lo que indique el middleware.
-
-.El archivo `controllers/book.js`
-[source, js]
-----
-module.exports.getBook = function(req, res) {
-    return res.status(200).send({"title": "Harry Potter y la piedra filosofal"});  
-};
-----
-
-[NOTE]
-====
-Esta función es sólo un _mock_. Realmente debería recuperar la información de una base de datos
-====
 
 ### Uso de la API mediante autenticación
 
