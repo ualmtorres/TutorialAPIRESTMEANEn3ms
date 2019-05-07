@@ -39,6 +39,8 @@ Veremos los pasos básicos para el desarrollo de una API REST para la pila MEAN.
 * Conocer el funcionamiento básico de rutas, controladores y modelos
 * Realizar las operaciones CRUD básicas
 * Aprender a consumir de una API REST MEAN
+* Usar JSON Web Tokens (JWT) como control de acceso a la API
+* Usar Swagger para la documentación de la API
 
 // Entrar en modo numerado de apartados
 :numbered:
@@ -1173,6 +1175,254 @@ El token lo pasaremos como _Bearer Token_ en el desplegable _Tipo_ de la pestañ
     "message": "Token caducado"
 }
 ----
+
+## Documentación de la API mediante Swagger
+
+https://swagger.io/[Swagger] es un framework para la creación y documentación de APIs REST. Podemos usar Swagger desde cero para crear la especificación de la API y Swagger nos asistirá en la generación de documentación y generación del código de la API, así como de otras tareas de _testing_ para comprobar, por ejemplo, si existe código asociado a cada tipo de estado devuelto por cada operación de la API. Otra opción es usar Swagger para documentar una API ya existente. En nuestro caso usaremos esta última opción para documentar la API desarrollada en este tutorial.
+
+Para este tutorial usaremos el https://editor.swagger.io/[editor online de Swagger] aunque hay gran cantidad de https://swagger.io/tools/[herramientas Swagger] online y on-premise que nos asisten en el proceso de creación y documentación de una API. 
+
+Al usar la `live demo` del editor online de Swagger ya tendremos disponible el código fuente de la documentación de la API y su vista previa. Iremos modificando el código fuente de ejemplo para documentar nuestra propia API.
+
+.Editor online de Swagger
+image::SwaggerEditor.png[]
+
+### Partes básicas de la documentación Swagger
+
+La documentación de ejemplo generada está creada en YAML donde se destaca lo siguiente:
+
+* `swagger`: Versión de Swagger que estamos usando. La versión actual es la 2, aunque ya existe una versión 3.
+* `info`: Información general de interés sobre la API (descripción, versión, titulo, términos de servicio, datos de contacto, ...)
+* `host` donde se desplegaría la documetación generada
+* `tags`: Permiten agrupar los endpoints (p.e. `books`, `categories`, `users`, ...)
+* `schemes`: Esquemas permitidos (`http` o `https`)
+* `paths`: Rutas de la API. Normalmente se agrupan por entidad (p.e. `book`, `author`). Dentro de cada entidad estarán las distintas operaciones permitidas (`GET`, `PUT`, `POST`, ...)
+* `securityDefinitions`: Permite definir modelos de autenticación para las pruebas de la API que se hagan desde la documentación Swagger de la API.
+* `definitions`: Definición de los modelos de la API
+
+### Documentación Swagger de la API
+
+[source, yaml]
+----
+swagger: '2.0'
+info: <1>
+  description: |
+    API REST de Bookstore
+  version: 1.0.0
+  title: Bookstore REST API
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: mtorres@ual.es
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+# host: petstore.swagger.io
+# basePath: /v2
+tags: <2>
+- name: book
+  description: Libros de la tienda online
+paths: <3>
+  /book/{id}: <4>
+    get: <5>
+      tags: <6>
+      - book 
+      summary: Obtener libro por id <7>
+      operationId: bookFindById <8>
+      produces: <9>
+      - application/json
+      parameters: <10>
+      - name: id
+        in: path
+        description: El id del libro a recuperar. Use 5cac6351f4c126f6d91c6450 para pruebas. 
+        required: true
+        type: string
+      responses: <11>
+        200:
+          description: Operación correcta
+          schema:
+            $ref: '#/definitions/Book'
+        400:
+          description: id inválido
+        404:
+          description: Libro no encontrado
+    put: <12>
+      tags:
+      - book
+      summary: Libro actualizado
+      description: Esta operación sólo la pueden realizar los usuarios que hayan iniciado sesión.
+      operationId: bookUpdate
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: id del libro a modificar
+        required: true
+        type: string
+      responses:
+        400:
+          description: id inválido
+        404:
+          description: Libro no encontrado
+    delete: <13>
+      tags:
+      - book
+      summary: Eliminar usuario
+      description: Esta operación sólo la pueden realizar los usuarios que hayan iniciado sesión.
+      operationId: bookDelete
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: El id del libro a eliminar
+        required: true
+        type: string
+      responses:
+        400:
+          description: id inválido
+        404:
+          description: Libro no encontrado
+definitions: <14>
+  Book:
+    type: object
+    required:
+    - title
+    - genre
+    - author
+    properties:
+      title:
+        type: string
+      genre:
+        type: string
+      description:
+        type: string
+      author:
+        type: string
+      publisher:
+        type: string
+      pages:
+        type: integer
+      image_url:
+        type: boolean
+    xml:
+      name: Book
+externalDocs: <15>
+  description: Más información sobre Swagger
+  url: http://swagger.io
+host: localhost:3000 <16>
+basePath: /api <17>
+----
+<1> Información descriptiva
+<2> Tags para organizar los endpoints
+<3> Paths de la API
+<4> Ruta de acceso
+<5> Verbo HTTP del endpoint
+<6> Tag en el que agrupar el endpoint de cara a organizar los endpoints en la documentación
+<7> Descripción del endpoint
+<8> Método que se encarga de implementar la operación. Util cuando se usa la generáción de código y las funciones de testing
+<9> Tipo de respuesta devuelto
+<10> Parámetros de entrada del endpoint
+<11> Respuestas producidas por el método
+<12> Operación `PUT`
+<13> Operación `DELETE`
+<14> Definición de los modelos
+<15> Documentación complementaria de interés
+<16> Servidor donde está alojada la API
+<17> Path de acceso a la API 
+
+### Incorporar la documentación de la API al proyecto
+
+Una vez creada la documentación, para pasarla al proyecto usaremos el paquete Node.js `swagger-ui-express`, que sirve la documentación de Swagger mediante Swagger UI en la ruta que definamos en nuestro proyecto.
+
+Después exportaremos a un JSON local la documentación creada en el editor online de Swagger.
+
+Por último, añadiremos el JSON al proyecto y modificaremos `app.js` para incluir el acceso a la documentación.
+
+#### Instalación de `swagger-ui-express`
+
+[source, bash]
+----
+$ npm install swagger-ui-express --save
+----
+
+#### Exportar la API a JSON
+
+Para poder usar la documentación JSON en nuestro proyecto usaremos la versión JSON de la documentación Swagger creada anteriormente. En el editor online seleccionaremos `Export` | `Download API` | `JSON Resolved`.
+
+El resultado será algo similar a esto:
+
+[source, json]
+----
+{
+  "swagger" : "2.0",
+  "info" : {
+    "description" : "API REST de Bookstore\n",
+    "version" : "1.0.0",
+    "title" : "Bookstore REST API",
+    "termsOfService" : "http://swagger.io/terms/",
+    "contact" : {
+      "email" : "mtorres@ual.es"
+    },
+    "license" : {
+      "name" : "Apache 2.0",
+      "url" : "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+...
+  "schemes" : [ "https", "http" ],
+  "paths" : {
+    "/book/{id}" : {
+      "get" : {
+        "tags" : [ "book" ],
+        "summary" : "Obtener libro por id",
+        "operationId" : "bookFindById",
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "El id del libro a recuperar. Use xxx para pruebas.",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Operación correcta",
+            "schema" : {
+              "$ref" : "#/definitions/Book"
+            }
+          },
+          "400" : {
+            "description" : "id inválido"
+          },
+          "404" : {
+            "description" : "Libro no encontrado"
+          }
+        }
+      },
+...
+----
+
+Colocaremos este archivo como `swagger.json` en la carpeta raíz del código del proyecto.
+
+### Incportación de la documentación como una ruta del proyecto
+
+Incluir el código siguiente en `app.js` para ofreer la documentación de la API a través de Swagger UI.
+
+[source, js]
+----
+var swaggerUi = require('swagger-ui-express'); <1>
+swaggerDocument = require('./swagger.json'); <2>
+...
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)); <3>
+----
+<1> Uso de `swagger-ui-express`
+<2> Carga del documento JSON de la documentación
+<3> Creación de la ruta de acceso a la documentación
+
+El resultado debería ser el siguiente tras acceder a `http://localhost:3000/api-docs`
+
+image::BookstoreSwagger.png[]
 
 :numbered!: 
 
