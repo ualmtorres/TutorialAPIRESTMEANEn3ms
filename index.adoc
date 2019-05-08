@@ -1178,22 +1178,22 @@ El token lo pasaremos como _Bearer Token_ en el desplegable _Tipo_ de la pestañ
 
 ## Documentación de la API mediante Swagger
 
-https://swagger.io/[Swagger] es un framework para la creación y documentación de APIs REST. Podemos usar Swagger desde cero para crear la especificación de la API y Swagger nos asistirá en la generación de documentación y generación del código de la API, así como de otras tareas de _testing_ para comprobar, por ejemplo, si existe código asociado a cada tipo de estado devuelto por cada operación de la API. Otra opción es usar Swagger para documentar una API ya existente. En nuestro caso usaremos esta última opción para documentar la API desarrollada en este tutorial.
+https://swagger.io/[Swagger] es un framework que ofrece un conjunto de herramientas para la creación y documentación de APIs REST. Podemos optar por usar Swagger desde cero para crear la especificación de la API y Swagger nos asistirá en la generación de la documentación y del código de la API, así como de otras tareas de _testing_ para comprobar, por ejemplo, si existe código asociado a cada tipo de estado devuelto por cada operación de la API. Otra opción es usar Swagger para documentar una API ya existente. En nuestro caso usaremos esta última opción para documentar la API desarrollada en este tutorial.
 
-Para este tutorial usaremos el https://editor.swagger.io/[editor online de Swagger] aunque hay gran cantidad de https://swagger.io/tools/[herramientas Swagger] online y on-premise que nos asisten en el proceso de creación y documentación de una API. 
+Para este tutorial usaremos el https://editor.swagger.io/[editor online de Swagger], aunque hay gran cantidad de https://swagger.io/tools/[herramientas Swagger] online y on-premise que nos asisten en el proceso de creación y documentación de una API. 
 
-Al usar la `live demo` del editor online de Swagger ya tendremos disponible el código fuente de la documentación de la API y su vista previa. Iremos modificando el código fuente de ejemplo para documentar nuestra propia API.
+Al usar la _live demo_ del editor online de Swagger ya tendremos un ejemplo de código fuente de la documentación de una API, así como su vista previa. A partir del ejemplo generado, podemos tomarlo como punto de partido y realizar las modificaciones necesarias para crear la documentación de nuestra propia API.
 
 .Editor online de Swagger
 image::SwaggerEditor.png[]
 
 ### Partes básicas de la documentación Swagger
 
-La documentación de ejemplo generada está creada en YAML donde se destaca lo siguiente:
+La documentación de ejemplo generada está creada en https://en.wikipedia.org/wiki/YAML[YAML]. En ella, podemos destacar las secciones siguientes:
 
 * `swagger`: Versión de Swagger que estamos usando. La versión actual es la 2, aunque ya existe una versión 3.
 * `info`: Información general de interés sobre la API (descripción, versión, titulo, términos de servicio, datos de contacto, ...)
-* `host` donde se desplegaría la documetación generada
+* `host`: Se usa para lanzar peticiones de prueba desde la propia documentación y se corresponde con el host donde reside la API.
 * `tags`: Permiten agrupar los endpoints (p.e. `books`, `categories`, `users`, ...)
 * `schemes`: Esquemas permitidos (`http` o `https`)
 * `paths`: Rutas de la API. Normalmente se agrupan por entidad (p.e. `book`, `author`). Dentro de cada entidad estarán las distintas operaciones permitidas (`GET`, `PUT`, `POST`, ...)
@@ -1216,8 +1216,6 @@ info: <1>
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-# host: petstore.swagger.io
-# basePath: /v2
 tags: <2>
 - name: book
   description: Libros de la tienda online
@@ -1320,7 +1318,7 @@ basePath: /api <17>
 <5> Verbo HTTP del endpoint
 <6> Tag en el que agrupar el endpoint de cara a organizar los endpoints en la documentación
 <7> Descripción del endpoint
-<8> Método que se encarga de implementar la operación. Util cuando se usa la generáción de código y las funciones de testing
+<8> Nombre del método que se encarga de implementar la operación. Util cuando se usa la generáción de código y las funciones de testing
 <9> Tipo de respuesta devuelto
 <10> Parámetros de entrada del endpoint
 <11> Respuestas producidas por el método
@@ -1333,11 +1331,13 @@ basePath: /api <17>
 
 ### Incorporar la documentación de la API al proyecto
 
-Una vez creada la documentación, para pasarla al proyecto usaremos el paquete Node.js `swagger-ui-express`, que sirve la documentación de Swagger mediante Swagger UI en la ruta que definamos en nuestro proyecto.
+Una vez creada la documentación, para pasarla al proyecto usaremos el paquete Node.js `swagger-ui-express`, que sirve la documentación de Swagger mediante https://swagger.io/tools/swagger-ui/[Swagger UI] en la ruta que definamos en nuestro proyecto. Swagger UI presenta la documentación de la API y permite interactuar con los endpoints.
 
-Después exportaremos a un JSON local la documentación creada en el editor online de Swagger.
+Después exportaremos a un archivo JSON local (normalmente `swagger.json`) la documentación creada en el editor online de Swagger.
 
-Por último, añadiremos el JSON al proyecto y modificaremos `app.js` para incluir el acceso a la documentación.
+Por último, añadiremos el archivo JSON con la documentación al proyecto y modificaremos `app.js` para incluir el acceso a la documentación.
+
+A continuación se describen estos pasos.
 
 #### Instalación de `swagger-ui-express`
 
@@ -1348,7 +1348,7 @@ $ npm install swagger-ui-express --save
 
 #### Exportar la API a JSON
 
-Para poder usar la documentación JSON en nuestro proyecto usaremos la versión JSON de la documentación Swagger creada anteriormente. En el editor online seleccionaremos `Export` | `Download API` | `JSON Resolved`.
+Swagger UI usa JSON como formato para la documentación de la API. Para guardar la documentación en formato JSON, en el editor online seleccionaremos `Export` | `Download API` | `JSON Resolved`.
 
 El resultado será algo similar a esto:
 
@@ -1405,9 +1405,9 @@ El resultado será algo similar a esto:
 
 Colocaremos este archivo como `swagger.json` en la carpeta raíz del código del proyecto.
 
-### Incportación de la documentación como una ruta del proyecto
+### Importación de la documentación como una ruta del proyecto
 
-Incluir el código siguiente en `app.js` para ofreer la documentación de la API a través de Swagger UI.
+Swagger UI presentará la documentación de la API a través de una ruta de nuestra aplicación. Para ofrecer la documentación de la API a través de Swagger UI incluiremos el código siguiente en `app.js`
 
 [source, js]
 ----
@@ -1420,7 +1420,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)); <3>
 <2> Carga del documento JSON de la documentación
 <3> Creación de la ruta de acceso a la documentación
 
-El resultado debería ser el siguiente tras acceder a `http://localhost:3000/api-docs`
+Ahora la documentación de la API estará accesible desde `http://localhost:3000/api-docs`
 
 image::BookstoreSwagger.png[]
 

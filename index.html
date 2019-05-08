@@ -482,7 +482,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#truepartes-b-sicas-de-la-documentaci-n-swagger">8.1. Partes básicas de la documentación Swagger</a></li>
 <li><a href="#truedocumentaci-n-swagger-de-la-api">8.2. Documentación Swagger de la API</a></li>
 <li><a href="#trueincorporar-la-documentaci-n-de-la-api-al-proyecto">8.3. Incorporar la documentación de la API al proyecto</a></li>
-<li><a href="#trueincportaci-n-de-la-documentaci-n-como-una-ruta-del-proyecto">8.4. Incportación de la documentación como una ruta del proyecto</a></li>
+<li><a href="#trueimportaci-n-de-la-documentaci-n-como-una-ruta-del-proyecto">8.4. Importación de la documentación como una ruta del proyecto</a></li>
 </ul>
 </li>
 <li><a href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes">Apéndice A. Códigos de estado HTTP frecuentes</a></li>
@@ -2224,13 +2224,13 @@ module.exports = router;</code></pre>
 <h2 id="truedocumentaci-n-de-la-api-mediante-swagger"><a class="anchor" href="#truedocumentaci-n-de-la-api-mediante-swagger"></a>8. Documentación de la API mediante Swagger</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p><a href="https://swagger.io/">Swagger</a> es un framework para la creación y documentación de APIs REST. Podemos usar Swagger desde cero para crear la especificación de la API y Swagger nos asistirá en la generación de documentación y generación del código de la API, así como de otras tareas de <em>testing</em> para comprobar, por ejemplo, si existe código asociado a cada tipo de estado devuelto por cada operación de la API. Otra opción es usar Swagger para documentar una API ya existente. En nuestro caso usaremos esta última opción para documentar la API desarrollada en este tutorial.</p>
+<p><a href="https://swagger.io/">Swagger</a> es un framework que ofrece un conjunto de herramientas para la creación y documentación de APIs REST. Podemos optar por usar Swagger desde cero para crear la especificación de la API y Swagger nos asistirá en la generación de la documentación y del código de la API, así como de otras tareas de <em>testing</em> para comprobar, por ejemplo, si existe código asociado a cada tipo de estado devuelto por cada operación de la API. Otra opción es usar Swagger para documentar una API ya existente. En nuestro caso usaremos esta última opción para documentar la API desarrollada en este tutorial.</p>
 </div>
 <div class="paragraph">
-<p>Para este tutorial usaremos el <a href="https://editor.swagger.io/">editor online de Swagger</a> aunque hay gran cantidad de <a href="https://swagger.io/tools/">herramientas Swagger</a> online y on-premise que nos asisten en el proceso de creación y documentación de una API.</p>
+<p>Para este tutorial usaremos el <a href="https://editor.swagger.io/">editor online de Swagger</a>, aunque hay gran cantidad de <a href="https://swagger.io/tools/">herramientas Swagger</a> online y on-premise que nos asisten en el proceso de creación y documentación de una API.</p>
 </div>
 <div class="paragraph">
-<p>Al usar la <code>live demo</code> del editor online de Swagger ya tendremos disponible el código fuente de la documentación de la API y su vista previa. Iremos modificando el código fuente de ejemplo para documentar nuestra propia API.</p>
+<p>Al usar la <em>live demo</em> del editor online de Swagger ya tendremos un ejemplo de código fuente de la documentación de una API, así como su vista previa. A partir del ejemplo generado, podemos tomarlo como punto de partido y realizar las modificaciones necesarias para crear la documentación de nuestra propia API.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -2241,7 +2241,7 @@ module.exports = router;</code></pre>
 <div class="sect2">
 <h3 id="truepartes-b-sicas-de-la-documentaci-n-swagger"><a class="anchor" href="#truepartes-b-sicas-de-la-documentaci-n-swagger"></a>8.1. Partes básicas de la documentación Swagger</h3>
 <div class="paragraph">
-<p>La documentación de ejemplo generada está creada en YAML donde se destaca lo siguiente:</p>
+<p>La documentación de ejemplo generada está creada en <a href="https://en.wikipedia.org/wiki/YAML">YAML</a>. En ella, podemos destacar las secciones siguientes:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -2252,7 +2252,7 @@ module.exports = router;</code></pre>
 <p><code>info</code>: Información general de interés sobre la API (descripción, versión, titulo, términos de servicio, datos de contacto, &#8230;&#8203;)</p>
 </li>
 <li>
-<p><code>host</code> donde se desplegaría la documetación generada</p>
+<p><code>host</code>: Se usa para lanzar peticiones de prueba desde la propia documentación y se corresponde con el host donde reside la API.</p>
 </li>
 <li>
 <p><code>tags</code>: Permiten agrupar los endpoints (p.e. <code>books</code>, <code>categories</code>, <code>users</code>, &#8230;&#8203;)</p>
@@ -2288,8 +2288,6 @@ info: <i class="conum" data-value="1"></i><b>(1)</b>
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-# host: petstore.swagger.io
-# basePath: /v2
 tags: <i class="conum" data-value="2"></i><b>(2)</b>
 - name: book
   description: Libros de la tienda online
@@ -2418,7 +2416,7 @@ basePath: /api <i class="conum" data-value="17"></i><b>(17)</b></code></pre>
 </tr>
 <tr>
 <td><i class="conum" data-value="8"></i><b>8</b></td>
-<td>Método que se encarga de implementar la operación. Util cuando se usa la generáción de código y las funciones de testing</td>
+<td>Nombre del método que se encarga de implementar la operación. Util cuando se usa la generáción de código y las funciones de testing</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="9"></i><b>9</b></td>
@@ -2462,13 +2460,16 @@ basePath: /api <i class="conum" data-value="17"></i><b>(17)</b></code></pre>
 <div class="sect2">
 <h3 id="trueincorporar-la-documentaci-n-de-la-api-al-proyecto"><a class="anchor" href="#trueincorporar-la-documentaci-n-de-la-api-al-proyecto"></a>8.3. Incorporar la documentación de la API al proyecto</h3>
 <div class="paragraph">
-<p>Una vez creada la documentación, para pasarla al proyecto usaremos el paquete Node.js <code>swagger-ui-express</code>, que sirve la documentación de Swagger mediante Swagger UI en la ruta que definamos en nuestro proyecto.</p>
+<p>Una vez creada la documentación, para pasarla al proyecto usaremos el paquete Node.js <code>swagger-ui-express</code>, que sirve la documentación de Swagger mediante <a href="https://swagger.io/tools/swagger-ui/">Swagger UI</a> en la ruta que definamos en nuestro proyecto. Swagger UI presenta la documentación de la API y permite interactuar con los endpoints.</p>
 </div>
 <div class="paragraph">
-<p>Después exportaremos a un JSON local la documentación creada en el editor online de Swagger.</p>
+<p>Después exportaremos a un archivo JSON local (normalmente <code>swagger.json</code>) la documentación creada en el editor online de Swagger.</p>
 </div>
 <div class="paragraph">
-<p>Por último, añadiremos el JSON al proyecto y modificaremos <code>app.js</code> para incluir el acceso a la documentación.</p>
+<p>Por último, añadiremos el archivo JSON con la documentación al proyecto y modificaremos <code>app.js</code> para incluir el acceso a la documentación.</p>
+</div>
+<div class="paragraph">
+<p>A continuación se describen estos pasos.</p>
 </div>
 <div class="sect3">
 <h4 id="trueinstalaci-n-de-code-swagger-ui-express-code"><a class="anchor" href="#trueinstalaci-n-de-code-swagger-ui-express-code"></a>8.3.1. Instalación de <code>swagger-ui-express</code></h4>
@@ -2481,7 +2482,7 @@ basePath: /api <i class="conum" data-value="17"></i><b>(17)</b></code></pre>
 <div class="sect3">
 <h4 id="trueexportar-la-api-a-json"><a class="anchor" href="#trueexportar-la-api-a-json"></a>8.3.2. Exportar la API a JSON</h4>
 <div class="paragraph">
-<p>Para poder usar la documentación JSON en nuestro proyecto usaremos la versión JSON de la documentación Swagger creada anteriormente. En el editor online seleccionaremos <code>Export</code> | <code>Download API</code> | <code>JSON Resolved</code>.</p>
+<p>Swagger UI usa JSON como formato para la documentación de la API. Para guardar la documentación en formato JSON, en el editor online seleccionaremos <code>Export</code> | <code>Download API</code> | <code>JSON Resolved</code>.</p>
 </div>
 <div class="paragraph">
 <p>El resultado será algo similar a esto:</p>
@@ -2543,9 +2544,9 @@ basePath: /api <i class="conum" data-value="17"></i><b>(17)</b></code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="trueincportaci-n-de-la-documentaci-n-como-una-ruta-del-proyecto"><a class="anchor" href="#trueincportaci-n-de-la-documentaci-n-como-una-ruta-del-proyecto"></a>8.4. Incportación de la documentación como una ruta del proyecto</h3>
+<h3 id="trueimportaci-n-de-la-documentaci-n-como-una-ruta-del-proyecto"><a class="anchor" href="#trueimportaci-n-de-la-documentaci-n-como-una-ruta-del-proyecto"></a>8.4. Importación de la documentación como una ruta del proyecto</h3>
 <div class="paragraph">
-<p>Incluir el código siguiente en <code>app.js</code> para ofreer la documentación de la API a través de Swagger UI.</p>
+<p>Swagger UI presentará la documentación de la API a través de una ruta de nuestra aplicación. Para ofrecer la documentación de la API a través de Swagger UI incluiremos el código siguiente en <code>app.js</code></p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2572,7 +2573,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)); <i clas
 </table>
 </div>
 <div class="paragraph">
-<p>El resultado debería ser el siguiente tras acceder a <code><a href="http://localhost:3000/api-docs" class="bare">http://localhost:3000/api-docs</a></code></p>
+<p>Ahora la documentación de la API estará accesible desde <code><a href="http://localhost:3000/api-docs" class="bare">http://localhost:3000/api-docs</a></code></p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -2876,7 +2877,7 @@ router.get('/', function(req, res, next) { <i class="conum" data-value="1"></i><
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-05-08 00:34:30 CEST
+Last updated 2019-05-08 09:08:29 CEST
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/github.min.css">
