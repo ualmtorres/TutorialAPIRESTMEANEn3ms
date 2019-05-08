@@ -5,8 +5,8 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.5.dev">
-<meta name="author" content="Desarrollo de Aplicaciones Híbridas">
-<title>Creación de una API REST para la pila MEAN en 3 ms</title>
+<meta name="author" content="Máster en Tecnologías y Aplicaciones en Ingeniería Informática">
+<title>API REST para la pila MEAN (JWT y Swagger incluido)</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -421,9 +421,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="book toc2 toc-right">
 <div id="header">
-<h1>Creación de una API REST para la pila MEAN en 3 ms</h1>
+<h1>API REST para la pila MEAN (JWT y Swagger incluido)</h1>
 <div class="details">
-<span id="author" class="author">Desarrollo de Aplicaciones Híbridas</span><br>
+<span id="author" class="author">Máster en Tecnologías y Aplicaciones en Ingeniería Informática</span><br>
 <span id="revdate">UAL</span>
 </div>
 <div id="toc" class="toc2">
@@ -480,11 +480,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#truedocumentaci-n-de-la-api-mediante-swagger">8. Documentación de la API mediante Swagger</a>
 <ul class="sectlevel2">
 <li><a href="#truepartes-b-sicas-de-la-documentaci-n-swagger">8.1. Partes básicas de la documentación Swagger</a></li>
-<li><a href="#truedocumentaci-n-swagger-de-la-api">8.2. Documentación Swagger de la API</a></li>
+<li><a href="#truedocumentaci-n-swagger-de-la-api-fragmento">8.2. Documentación Swagger de la API (fragmento)</a></li>
 <li><a href="#trueincorporar-la-documentaci-n-de-la-api-al-proyecto">8.3. Incorporar la documentación de la API al proyecto</a></li>
 <li><a href="#trueimportaci-n-de-la-documentaci-n-como-una-ruta-del-proyecto">8.4. Importación de la documentación como una ruta del proyecto</a></li>
 </ul>
 </li>
+<li><a href="#trueconclusiones">9. Conclusiones</a></li>
 <li><a href="#trueap-ndice-a-c-digos-de-estado-http-frecuentes">Apéndice A. Códigos de estado HTTP frecuentes</a></li>
 <li><a href="#trueap-ndice-b-base-de-datos-de-ejemplo">Apéndice B. Base de datos de ejemplo</a></li>
 <li><a href="#trueap-ndice-c-aplicaci-n-base-creada-por-express">Apéndice C. Aplicación base creada por Express</a>
@@ -1785,7 +1786,7 @@ app.set('views', path.join(__dirname, 'app_server', 'views')); <i class="conum" 
 <p>Payload: Objeto JSON codificado en base64url con los datos o privilegios, es decir, el cuerpo en sí del token.</p>
 </li>
 <li>
-<p>Firma: Hash codificado en base64url de la cabecera y el payload usando un <em>secreto</em> que sólo conoce el servidor que ha creado el token. La firma permite determinar si el token ha sido creado usando el secreto establecido. Si no se ha usado dicho secreto concluiremos que el token es falso y se rechazará la petición.</p>
+<p>Firma: Hash codificado en base64url de la cabecera y el payload usando un <em>secreto</em> que sólo conoce el servidor que ha creado el token. La firma permite determinar si el token ha sido creado usando el secreto establecido. Si no se ha creado usando dicho secreto, concluiremos que el token es falso y se rechazará la petición.</p>
 </li>
 </ul>
 </div>
@@ -1847,14 +1848,6 @@ token = encodeBase64Url(header) + '.' + encodeBase64Url(payload) + '.' + encodeB
 <div class="paragraph">
 <p>Los controladores incluyen las funciones que atienden a las peticiones de la API REST. Estas funciones no tienen en cuenta la autenticación. Las API REST no tienen estado. Del control de acceso se encarga el middleware. Las funciones de los controladores se ejecutarán en función de lo que indique el middleware.</p>
 </div>
-<div class="listingblock">
-<div class="title">El archivo <code>controllers/book.js</code></div>
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-js" data-lang="js">module.exports.getBook = function(req, res) {
-    return res.status(200).send({"title": "Harry Potter y la piedra filosofal"});
-};</code></pre>
-</div>
-</div>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -1863,7 +1856,7 @@ token = encodeBase64Url(header) + '.' + encodeBase64Url(payload) + '.' + encodeB
 </td>
 <td class="content">
 <div class="paragraph">
-<p>Se supone que la creación de los controladores ya estaba finalizada, pero se incluye aquí para que quede un ejemplo cerrado. Esta función es sólo un <em>mock</em>. Realmente debería recuperar la información de una base de datos</p>
+<p>La creación de los controladores ya estaba finalizada en las secciones <a href="#truecreaci-n-del-primer-endpoint">Creación del primer endpoint</a>, <a href="#truecreaci-n-de-otros-endpoints-de-consulta-get">Creación de otros endpoints de consulta (GET)</a> y <a href="#truelas-otras-operaciones-crud">Las otras operaciones CRUD</a></p>
 </div>
 </td>
 </tr>
@@ -1871,23 +1864,31 @@ token = encodeBase64Url(header) + '.' + encodeBase64Url(payload) + '.' + encodeB
 </div>
 </div>
 <div class="sect3">
-<h4 id="trueinstalaci-n-de-code-jsonwebtoken-code"><a class="anchor" href="#trueinstalaci-n-de-code-jsonwebtoken-code"></a>7.2.2. Instalación de <code>jsonwebtoken</code></h4>
+<h4 id="trueinstalaci-n-de-los-m-dulos-necesarios"><a class="anchor" href="#trueinstalaci-n-de-los-m-dulos-necesarios"></a>7.2.2. Instalación de los módulos necesarios</h4>
 <div class="paragraph">
-<p>Existen módulos Node.js para generar JWT, como es <code>jsonwebtoken</code>. La instalaremos en nuestro proyecto con</p>
+<p>Existen módulos Node.js para generar JWT, como es <code>jsonwebtoken</code>. Lo instalaremos en nuestro proyecto con</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-bash" data-lang="bash">$ npm install jsonwebtoken --save</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>También instalaremos el módulo <code>moment</code> para las operaciones con los tiempos para establecer la caducidad de los tokens.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash" data-lang="bash">$ npm install moment --save</code></pre>
+</div>
+</div>
 </div>
 <div class="sect3">
 <h4 id="truecreaci-n-de-la-clave-secreta"><a class="anchor" href="#truecreaci-n-de-la-clave-secreta"></a>7.2.3. Creación de la clave secreta</h4>
 <div class="paragraph">
-<p>A continuación crearemos un archivo que contiene la clave secreta de firma de los tokens. Por motivos de seguridad, este archivo será excluido del control de versiones. Primero intetará tomarse el valor para el secreto desde la variable de entorno. Si la variable de entorno no está configurada, se le asignará como valor predeterminado el que se indique en el archivo <code>config.js</code>.</p>
+<p>A continuación crearemos un archivo que contiene la clave secreta de firma de los tokens. Por motivos de seguridad, este archivo será excluido del control de versiones. Primero intentará tomarse el valor para el secreto desde la variable de entorno. Si la variable de entorno no está configurada, se le asignará como valor predeterminado el que se indique en el archivo <code>config.js</code>.</p>
 </div>
 <div class="listingblock">
-<div class="title">El archivo <code>config.js</code></div>
+<div class="title">El archivo <code>api_server/config.js</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">module.exports = {
     TOKEN_SECRET: process.env.TOKEN_SECRET || "password"
@@ -1898,14 +1899,14 @@ token = encodeBase64Url(header) + '.' + encodeBase64Url(payload) + '.' + encodeB
 <div class="sect3">
 <h4 id="truecreaci-n-del-token"><a class="anchor" href="#truecreaci-n-del-token"></a>7.2.4. Creación del token</h4>
 <div class="paragraph">
-<p>La creación del token se realizará a través de una función <code>createToken</code>. La función construye el <em>payload</em> tomando los valores que queramos incluir en el token. Estos valores se conocen como <em>claims</em>. Existen <em>claims</em> registrados o reservados (p.e. <code>sub</code> para el nombre de usuarios, <code>iat</code> para la fecha de expedición y <code>exp</code> para la fecha de caducidad). También se pueden crear <em>claims</em>  personalizados o privados para intercambiar información a través del token. La función <code>createToken</code> devolverá el token firmado con el secreto configurado anteriormente.</p>
+<p>La creación del token se realizará a través de una función que denominaremos <code>createToken</code>. La función construye el <em>payload</em> tomando los valores que queramos incluir en el token. Estos valores se conocen como <em>claims</em>. Existen <em>claims</em> registrados o reservados (p.e. <code>sub</code> para el nombre de usuarios, <code>iat</code> para la fecha de expedición y <code>exp</code> para la fecha de caducidad). También se pueden crear <em>claims</em>  personalizados o privados para intercambiar información a través del token. La función <code>createToken</code> devolverá el token firmado con el secreto configurado anteriormente.</p>
 </div>
 <div class="listingblock">
-<div class="title">El archivo <code>service.js</code></div>
+<div class="title">El archivo <code>api_server/controllers/service.js</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">var jwt = require('jsonwebtoken'); <i class="conum" data-value="1"></i><b>(1)</b>
 var moment = require('moment'); <i class="conum" data-value="2"></i><b>(2)</b>
-var config = require('./config'); <i class="conum" data-value="3"></i><b>(3)</b>
+var config = require('../config'); <i class="conum" data-value="3"></i><b>(3)</b>
 
 exports.createToken = function(user) { <i class="conum" data-value="4"></i><b>(4)</b>
   var payload = {
@@ -1955,31 +1956,46 @@ exports.createToken = function(user) { <i class="conum" data-value="4"></i><b>(4
 </div>
 </div>
 <div class="sect3">
-<h4 id="trueproceso-de-autenticaci-n"><a class="anchor" href="#trueproceso-de-autenticaci-n"></a>7.2.5. Proceso de autenticación</h4>
+<h4 id="truem-dulo-de-autenticaci-n"><a class="anchor" href="#truem-dulo-de-autenticaci-n"></a>7.2.5. Módulo de autenticación</h4>
 <div class="paragraph">
-<p>El proceso de autenticación se encarga de registrar usuarios y comprobar si pueden iniciar sesión (p.e. comprobando si existen en la base de datos de usuarios registrados). Si todo va bien se devolverá un token que permitirá el acceso a los endpoints privados de la API.</p>
+<p>El módulo de autenticación se encarga de registrar usuarios y comprobar si pueden iniciar sesión (p.e. comprobando si existen en la base de datos de usuarios registrados). Si todo va bien, se devolverá un token que permitirá el acceso a los endpoints privados de la API.</p>
 </div>
 <div class="listingblock">
-<div class="title">El archivo <code>controllers/auth.js</code></div>
+<div class="title">El archivo <code>api_server/controllers/auth.js</code></div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-js" data-lang="js">var service = require('../service'); <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="highlightjs highlight"><code class="language-js" data-lang="js">var mongoose = require('mongoose');
+var User = mongoose.model('User');
+var service = require('../service'); <i class="conum" data-value="1"></i><b>(1)</b>
 
-//var user = '{"username": "mtorres", "password": "password"}';
-username = 'mtorres';
-
-exports.emailSignup = function(req, res) { <i class="conum" data-value="2"></i><b>(2)</b>
+module.exports.signup = function(req, res) { <i class="conum" data-value="2"></i><b>(2)</b>
+  User
+  .create({username: req.body.username, password: req.body.password}, function(err, user) { <i class="conum" data-value="3"></i><b>(3)</b>
+    if (err) {
+      return res.status(400).send(err); <i class="conum" data-value="4"></i><b>(4)</b>
+    }
     return res
     .status(200)
-    .send({token: service.createToken(username)});
-
+    .send({token: service.createToken(req.body.username)}); <i class="conum" data-value="5"></i><b>(5)</b>
+  });
 };
 
-exports.emailLogin = function(req, res) { <i class="conum" data-value="3"></i><b>(3)</b>
-    if (req.body.email == 'mtorres') {
-        return res
-        .status(200)
-        .send({token: service.createToken(username)});
-    }
+module.exports.login = function(req, res) { <i class="conum" data-value="6"></i><b>(6)</b>
+  if (req.body.username &amp;&amp; req.body.password) {
+    User
+    .count({username: req.body.username, password: req.body.password}) <i class="conum" data-value="7"></i><b>(7)</b>
+    .exec(function(err, user) {
+      if (!user) {
+        return res.status(401).send({"message": "Invalid user and/or password"}); <i class="conum" data-value="8"></i><b>(8)</b>
+      } else if (err) {
+        return res.status(404).send(err); <i class="conum" data-value="9"></i><b>(9)</b>
+      }
+      return res
+      .status(200)
+      .send({token: service.createToken(req.body.username)}); <i class="conum" data-value="10"></i><b>(10)</b>
+    });
+  } else {
+    return res.status(401).send({"message": "Invalid user and/or password"}); <i class="conum" data-value="11"></i><b>(11)</b>
+  }
 };</code></pre>
 </div>
 </div>
@@ -1995,21 +2011,39 @@ exports.emailLogin = function(req, res) { <i class="conum" data-value="3"></i><b
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Función de inicio de sesión. Tras un inicio de sesión satisfactorio devuelve un token de acceso a la API</td>
+<td>Creación del usuario en la base de datos</td>
 </tr>
-</table>
-</div>
-<div class="admonitionblock note">
-<table>
 <tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>Estas funciones sólo son un <em>mock</em>. Realmente debería haber una interacción con una base de datos de usuarios.</p>
-</div>
-</td>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Devolver un error si no se ha creado con éxito el usuario</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Devolver un token si el usuario se ha creado con éxito</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Función de inicio de sesión.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>Consulta que devuelve el número de usuarios con el login y pass proporcionados</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="8"></i><b>8</b></td>
+<td>Si no existe nada con esas creadenciales se devuelve un error</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="9"></i><b>9</b></td>
+<td>Devolver un error si se produce un error al consultar</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="10"></i><b>10</b></td>
+<td>Si existen las credenciales se devuelve un token de acceso a la API</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="11"></i><b>11</b></td>
+<td>Devolver error si falta algún parámetro</td>
 </tr>
 </table>
 </div>
@@ -2017,7 +2051,7 @@ exports.emailLogin = function(req, res) { <i class="conum" data-value="3"></i><b
 <div class="sect3">
 <h4 id="truecreaci-n-del-middleware"><a class="anchor" href="#truecreaci-n-del-middleware"></a>7.2.6. Creación del middleware</h4>
 <div class="paragraph">
-<p>A continuación tenemos que crear el <em>middleware</em>. Su función es la de actuar como una fase intermedia entre la petición y su resolución con el objetivo de determinar si se trata de una petición autorizada.</p>
+<p>A continuación tenemos que crear el <em>middleware</em>. Su función es la de actuar como una fase intermedia entre la petición y su resolución. El objetivo del middleware es el de determinar si se trata de una petición autorizada.</p>
 </div>
 <div class="paragraph">
 <p>La función <code>ensureAuthenticated</code> pasará la ejecución a la etapa siguiente (la resolución de la llamada al endpoint) si se cumplen todas estas condiciones:</p>
@@ -2036,11 +2070,11 @@ exports.emailLogin = function(req, res) { <i class="conum" data-value="3"></i><b
 </ul>
 </div>
 <div class="listingblock">
-<div class="title">El archivo <code>middleware.js</code></div>
+<div class="title">El archivo <code>api_server/controllers/middleware.js</code></div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">var jwt = require('jsonwebtoken'); <i class="conum" data-value="1"></i><b>(1)</b>
 var moment = require('moment');
-var config = require('./config');
+var config = require('../config');
 
 exports.ensureAuthenticated = function(req, res, next) {
   if(!req.headers.authorization) { <i class="conum" data-value="2"></i><b>(2)</b>
@@ -2099,7 +2133,7 @@ exports.ensureAuthenticated = function(req, res, next) {
 <div class="sect3">
 <h4 id="truecreaci-n-de-las-rutas"><a class="anchor" href="#truecreaci-n-de-las-rutas"></a>7.2.7. Creación de las rutas</h4>
 <div class="paragraph">
-<p>El archivo de rutas indica cómo resolver cada una de las peticiones, tanto de login/registro como de los endpoints en sí de la API. Para una mayor modularidad, el código de los controladores estará fuera del archivo de rutas.</p>
+<p>El archivo de rutas indica cómo resolver cada una de las peticiones, tanto de login/registro, como de los endpoints en sí de la API. Para una mayor modularidad, el código de los controladores estará fuera del archivo de rutas.</p>
 </div>
 <div class="listingblock">
 <div class="title">El archivo <code>routes/index.js</code></div>
@@ -2107,16 +2141,21 @@ exports.ensureAuthenticated = function(req, res, next) {
 <pre class="highlightjs highlight"><code class="language-js" data-lang="js">var express = require('express');
 var router = express.Router();
 
-var middleware = require('../middleware'); <i class="conum" data-value="1"></i><b>(1)</b>
+var middleware = require('../controllers/middleware'); <i class="conum" data-value="1"></i><b>(1)</b>
 var ctrlAuth = require('../controllers/auth'); <i class="conum" data-value="2"></i><b>(2)</b>
 var ctrlBook = require('../controllers/book'); <i class="conum" data-value="3"></i><b>(3)</b>
 
-// Rutas de registro y login
-router.post('/auth/signup', ctrlAuth.emailSignup); <i class="conum" data-value="4"></i><b>(4)</b>
-router.post('/auth/login', ctrlAuth.emailLogin);
+router.get('/', middleware.ensureAuthenticated, ctrlBook.bookList); <i class="conum" data-value="4"></i><b>(4)</b>
+router.get('/book/:id', middleware.ensureAuthenticated, ctrlBook.bookFindById);
+router.get('/genre/:genre', middleware.ensureAuthenticated, ctrlBook.bookFindByGenre);
 
-// Ruta accesible con token no caducado
-router.get('/private',middleware.ensureAuthenticated, ctrlBook.getBook); <i class="conum" data-value="5"></i><b>(5)</b>
+router.post('/book', middleware.ensureAuthenticated, ctrlBook.bookCreate);
+router.delete('/book/:id', middleware.ensureAuthenticated, ctrlBook.bookDelete);
+router.put('/book/:id', middleware.ensureAuthenticated, ctrlBook.bookUpdate);
+
+// Rutas de registro y login
+router.post('/auth/signup', ctrlAuth.emailSignup); <i class="conum" data-value="5"></i><b>(5)</b>
+router.post('/auth/login', ctrlAuth.emailLogin);
 
 module.exports = router;</code></pre>
 </div>
@@ -2137,11 +2176,11 @@ module.exports = router;</code></pre>
 </tr>
 <tr>
 <td><i class="conum" data-value="4"></i><b>4</b></td>
-<td>Rutas de registro y login</td>
+<td>Llamada a controladores condicionada al resultado de la evaluación (comprobación de token) del middleware</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="5"></i><b>5</b></td>
-<td>Llamada al controlador condicionado al resultado de la evaluación (comprobación de token) del middleware</td>
+<td>Rutas de registro y login</td>
 </tr>
 </table>
 </div>
@@ -2155,7 +2194,7 @@ module.exports = router;</code></pre>
 <div class="ulist">
 <ul>
 <li>
-<p>Si intentamos acceder sin cabecera al endpoint privado (<code>localhost:3000/private</code>) devuelve el código de error <code>403 Forbidden</code> con el siguiente contenido:</p>
+<p>Si intentamos acceder sin cabecera al endpoint privado (<code>localhost:3000/api</code>) devuelve el código de error <code>403 Forbidden</code> con el siguiente contenido:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-json" data-lang="json">{
@@ -2165,7 +2204,7 @@ module.exports = router;</code></pre>
 </div>
 </li>
 <li>
-<p>Si nos registramos (<code>localhost:3000/auth/signup</code>) devuelve el código de estado <code>200 OK</code> con el token:</p>
+<p>Si nos registramos pasando el <code>username</code> y <code>password</code> (<code>localhost:3000/api/auth/signup</code>) devuelve el código de estado <code>200 OK</code> con el token:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-json" data-lang="json">{
@@ -2175,7 +2214,7 @@ module.exports = router;</code></pre>
 </div>
 </li>
 <li>
-<p>Si iniciamos sesión (<code>localhost:3000/auth/login</code>) pasando los datos de login (p.e. <code>username</code>), se devuelve el código de estado <code>200 OK</code> con el token:</p>
+<p>Si iniciamos sesión (<code>localhost:3000/api/auth/login</code>) pasando los datos de login (<code>username</code> y <code>password</code>), se devuelve el código de estado <code>200 OK</code> con el token:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-json" data-lang="json">{
@@ -2185,7 +2224,7 @@ module.exports = router;</code></pre>
 </div>
 </li>
 <li>
-<p>Si accedemos al endpoint privado (<code>localhost:3000/private</code>) con el token antes de que caduque devuelve el código de estado <code>200 OK</code> con el resultado de la petición</p>
+<p>Si accedemos a un endpoint privado (p.e. <code>localhost:3000/api</code>) con el token antes de que caduque, se devuelve el código de estado <code>200 OK</code> con el resultado de la petición</p>
 </li>
 </ul>
 </div>
@@ -2197,7 +2236,7 @@ module.exports = router;</code></pre>
 </td>
 <td class="content">
 <div class="paragraph">
-<p>El token lo pasaremos como <em>Bearer Token</em> en el desplegable <em>Tipo</em> de la pestaña <em>Autorización</em> de Postman</p>
+<p>El token lo pasaremos como <a href="https://swagger.io/docs/specification/authentication/bearer-authentication/"><em>Bearer Token</em></a> en el desplegable <em>Tipo</em> de la pestaña <em>Autorización</em> de Postman</p>
 </div>
 </td>
 </tr>
@@ -2206,7 +2245,7 @@ module.exports = router;</code></pre>
 <div class="ulist">
 <ul>
 <li>
-<p>Si intentamos acceder al endpoint privado (<code>localhost:3000/private</code>) una vez caducado el token (el caduca a los 2 minutos), se devuelve el código de error <code>401 Unauthorized</code> con el siguiente contenido:</p>
+<p>Si intentamos acceder a un endpoint privado (p.e. <code>localhost:3000/api</code>) una vez caducado el token (el token del ejemplo caduca a los 2 minutos), se devuelve el código de error <code>401 Unauthorized</code> con el siguiente contenido:</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-json" data-lang="json">{
@@ -2230,7 +2269,7 @@ module.exports = router;</code></pre>
 <p>Para este tutorial usaremos el <a href="https://editor.swagger.io/">editor online de Swagger</a>, aunque hay gran cantidad de <a href="https://swagger.io/tools/">herramientas Swagger</a> online y on-premise que nos asisten en el proceso de creación y documentación de una API.</p>
 </div>
 <div class="paragraph">
-<p>Al usar la <em>live demo</em> del editor online de Swagger ya tendremos un ejemplo de código fuente de la documentación de una API, así como su vista previa. A partir del ejemplo generado, podemos tomarlo como punto de partido y realizar las modificaciones necesarias para crear la documentación de nuestra propia API.</p>
+<p>Al usar la <em>live demo</em> del editor online de Swagger ya tendremos un ejemplo de código fuente de la documentación de una API, así como su vista previa. A partir del ejemplo generado, podemos tomarlo como punto de partida y realizar las modificaciones necesarias para crear la documentación de nuestra propia API.</p>
 </div>
 <div class="imageblock">
 <div class="content">
@@ -2273,7 +2312,7 @@ module.exports = router;</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="truedocumentaci-n-swagger-de-la-api"><a class="anchor" href="#truedocumentaci-n-swagger-de-la-api"></a>8.2. Documentación Swagger de la API</h3>
+<h3 id="truedocumentaci-n-swagger-de-la-api-fragmento"><a class="anchor" href="#truedocumentaci-n-swagger-de-la-api-fragmento"></a>8.2. Documentación Swagger de la API (fragmento)</h3>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-yaml" data-lang="yaml">swagger: '2.0'
@@ -2482,7 +2521,7 @@ basePath: /api <i class="conum" data-value="17"></i><b>(17)</b></code></pre>
 <div class="sect3">
 <h4 id="trueexportar-la-api-a-json"><a class="anchor" href="#trueexportar-la-api-a-json"></a>8.3.2. Exportar la API a JSON</h4>
 <div class="paragraph">
-<p>Swagger UI usa JSON como formato para la documentación de la API. Para guardar la documentación en formato JSON, en el editor online seleccionaremos <code>Export</code> | <code>Download API</code> | <code>JSON Resolved</code>.</p>
+<p>Swagger UI usa JSON como formato para la documentación de la API. Para guardar la documentación en formato JSON, en el editor online seleccionaremos <code>File</code> | <code>Convert and save as JSON</code>.</p>
 </div>
 <div class="paragraph">
 <p>El resultado será algo similar a esto:</p>
@@ -2580,6 +2619,17 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)); <i clas
 <img src="./images/BookstoreSwagger.png" alt="BookstoreSwagger.png">
 </div>
 </div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="trueconclusiones"><a class="anchor" href="#trueconclusiones"></a>9. Conclusiones</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>La mayoría de las aplicaciones de hoy día disponen de una API REST para recuperar o realizar operaciones sobre sus datos. Además, una API REST permite la creación de servicios complementarios a los de la aplicación desde la que ha nacido. Saber crear e interactuar con una API REST hoy día es una habilidad fundamental.</p>
+</div>
+<div class="paragraph">
+<p>En este tutorial se estudia cómo desarollar una API REST con la pila MEAN (MongoDB, Express, Angular y Node.js) usando además Mongoose para la interacción con MongoDB. Hemos tratado un ejemplo práctico de creación de una API desde cero, comenzando con la instalación y preparación del entorno, para continuar con la creación de la estructura del proyecto, creación de modelos y creación de endpoints para operaciones CRUD. También hemos visto cómo consumir datos de la API, para terminar usando JWT como mecanismo de control de acceso y documentando la API con Swagger.</p>
 </div>
 </div>
 </div>
@@ -2877,7 +2927,7 @@ router.get('/', function(req, res, next) { <i class="conum" data-value="1"></i><
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-05-08 09:08:29 CEST
+Last updated 2019-05-08 23:29:31 CEST
 </div>
 </div>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/github.min.css">
